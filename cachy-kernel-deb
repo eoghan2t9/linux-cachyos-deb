@@ -153,17 +153,29 @@ configure_cachyos() {
 
 configure_cpusched() {
     local cachyos_status
-    local pds_status
+    local bore_status
+    local rt_status
+    local rt_bore_status
+    local hardened_status
+    local sched_ext_status
     local none_status
 
     cachyos_status=$( [ "$_cpusched_selection" = "cachyos" ] && echo "ON" || echo "OFF" )
-    pds_status=$( [ "$_cpusched_selection" = "pds" ] && echo "ON" || echo "OFF" )
+    bore_status=$( [ "$_cpusched_selection" = "bore" ] && echo "ON" || echo "OFF" )
+    rt_status=$( [ "$_cpusched_selection" = "rt" ] && echo "ON" || echo "OFF" )
+    rt_bore_status=$( [ "$_cpusched_selection" = "rt-bore" ] && echo "ON" || echo "OFF" )
+    hardened_status=$( [ "$_cpusched_selection" = "hardened" ] && echo "ON" || echo "OFF" )
+    sched_ext_status=$( [ "$_cpusched_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_cpusched_selection" = "none" ] && echo "ON" || echo "OFF" )
 
     _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
-        "Choose CPU Scheduler (use space to select):" 15 60 3 \
+        "Choose CPU Scheduler (use space to select):" 20 60 7 \
         "cachyos" "Enable CachyOS CPU scheduler" "$cachyos_status" \
-        "pds" "Enable PDS CPU scheduler" "$pds_status" \
+        "bore" "Enable Bore CPU scheduler" "$bore_status" \
+        "rt" "Enable RT CPU scheduler" "$rt_status" \
+        "rt-bore" "Enable RT-Bore CPU scheduler" "$rt_bore_status" \
+        "hardened" "Enable Hardened scheduler" "$hardened_status" \
+        "sched-ext" "Enable SCHED_EXT" "$sched_ext_status" \
         "none" "Do not configure CPU scheduler" "$none_status" \
         3>&1 1>&2 2>&3)
 }
@@ -397,7 +409,6 @@ do_things() {
     case "$_cpusched_selection" in
         cachyos) scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT ;;
         bore | hardened) scripts/config -e SCHED_BORE ;;
-        eevdf) ;;
         rt) scripts/config -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
         rt-bore) scripts/config -e SCHED_BORE -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
         sched-ext) scripts/config -e SCHED_CLASS_EXT ;;
@@ -499,6 +510,8 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${kernel_pkg_dir}"
 
+        mv "${kernel_pkg_name}.deb" ../
+
         rm -rf "${kernel_pkg_dir}"
     }
 
@@ -520,6 +533,8 @@ EOF
         make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
+
+        mv "${kernel_pkg_name}.deb" ../
 
         rm -rf "${headers_pkg_dir}"
     }
@@ -578,6 +593,8 @@ EOF
     # if [[ "$_zfs" == "yes" ]]; then
     #     package_zfs
     # fi
+
+
 }
 
 #   ====== START ======
