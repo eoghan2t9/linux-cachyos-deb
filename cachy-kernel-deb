@@ -533,13 +533,9 @@ create_debian_packages() {
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
 
-    local kernel_pkg_name="cachyos-kernel-${kernel_version}"
-    local kernel_pkg_version="${kernel_version}-1"
+    local kernel_pkg_name="linux-image-cachyos-${kernel_version}_${arch}"
+    local kernel_pkg_version="+nitrux-${kernel_version}-1"
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
-
-    local headers_pkg_name="cachyos-kernel-headers-${kernel_version}"
-    local headers_pkg_version="${kernel_version}-1"
-    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
 
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
@@ -555,6 +551,7 @@ Package: ${kernel_pkg_name}
 Version: ${kernel_pkg_version}
 Section: kernel
 Priority: optional
+Depends: initramfs-tools, libc6, kmod, linux-base
 Architecture: ${arch}
 Maintainer: Uri Herrera <uri_herrera@nxos.org>
 Description: Linux Kernel ${kernel_version} with CachyOS patches
@@ -593,6 +590,10 @@ EOF
         rm -rf "${kernel_pkg_dir}" "$modules_build_dir"
     }
 
+    local headers_pkg_name="linux-image-cachyos-headers-${kernel_version}_${arch}"
+    local headers_pkg_version="+nitrux-${kernel_version}-1"
+    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
+
     package_headers() {
         local control_file="${headers_pkg_dir}/DEBIAN/control"
         local headers_postinst_file="${headers_pkg_dir}/DEBIAN/postinst"
@@ -604,6 +605,7 @@ Package: ${headers_pkg_name}
 Version: ${headers_pkg_version}
 Section: kernel
 Priority: optional
+Depends: ${headers_pkg_name}
 Architecture: ${arch}
 Maintainer: Uri Herrera <uri_herrera@nxos.org>
 Description: Headers for Linux Kernel ${kernel_version} with CachyOS patches
