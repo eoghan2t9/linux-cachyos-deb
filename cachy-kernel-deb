@@ -47,7 +47,6 @@ _lru_config="standard"
 _hugepage="always"
 
 _o3_optimization="yes"
-_os_optimization="yes"
 _performance_governor="yes"
 _bbr3="yes"
 _vma="yes"
@@ -309,7 +308,6 @@ configure_preempt_type() {
 
 configure_system_optimizations() {
     local o3_status
-    local os_status
     local performance_status
     local bbr3_status
     local vma_status
@@ -318,7 +316,6 @@ configure_system_optimizations() {
     local zfs_status
 
     o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
-    os_status=$([ "$_os_optimization" = "yes" ] && echo "ON" || echo "OFF")
     performance_status=$([ "$_performance_governor" = "yes" ] && echo "ON" || echo "OFF")
     bbr3_status=$([ "$_bbr3" = "yes" ] && echo "ON" || echo "OFF")
     vma_status=$([ "$_vma" = "yes" ] && echo "ON" || echo "OFF")
@@ -330,7 +327,6 @@ configure_system_optimizations() {
     selection=$(whiptail --title "System Optimizations Configuration" --checklist \
         "Select optimizations to enable:" 20 78 8 \
         "O3 Optimization" "" "$o3_status" \
-        "OS Optimization" "" "$os_status" \
         "Performance Governor" "" "$performance_status" \
         "TCP BBR3" "" "$bbr3_status" \
         "VMA" "" "$vma_status" \
@@ -341,10 +337,6 @@ configure_system_optimizations() {
 
     if [[ "$selection" == *"O3 Optimization"* ]]; then
         _o3_optimization="yes"
-    fi
-
-    if [[ "$selection" == *"OS Optimization"* ]]; then
-        _os_optimization="yes"
     fi
 
     _performance_governor=$( [[ "$selection" == *"Performance Governor"* ]] && echo "yes" || echo "no" )
@@ -476,8 +468,7 @@ customize_kernel_version() {
         echo "Updating EXTRAVERSION in Makefile..."
         cd "$_kv_name" || return 1 
         sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
-        EXTRAVERSION="-${new_suffix}"
-        echo "Kernel version updated to ${_kv_name}${EXTRAVERSION}."
+        echo "Kernel version updated to ${_kv_name}-$(make kernelversion)${EXTRAVERSION}."
         cd -
     else
         echo "Operation canceled."
@@ -504,7 +495,6 @@ show_options() {
     Hugepages: $_hugepage
 
     O3 Optimization: $_o3_optimization
-    OS Optimization: $_os_optimization
     Performance Governor: $_performance_governor
     TCP BBR3: $_bbr3
     VMA: $_vma
@@ -569,7 +559,7 @@ EOF
         cat >"${kernel_postrm_file}" <<EOF
 #!/usr/bin/env bash
 
-# -- Update initrd files.
+# -- Remove generated initrd files.
 
 find /boot -name "initrd.img-${kernel_version}" -exec rm -f {} \;
 update-grub
