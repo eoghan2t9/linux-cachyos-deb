@@ -164,7 +164,6 @@ configure_cpusched() {
     local rt_status
     local rt_bore_status
     local hardened_status
-    local sched_ext_status
     local none_status
 
     cachyos_status=$( [ "$_cpusched_selection" = "cachyos" ] && echo "ON" || echo "OFF" )
@@ -172,7 +171,6 @@ configure_cpusched() {
     rt_status=$( [ "$_cpusched_selection" = "rt" ] && echo "ON" || echo "OFF" )
     rt_bore_status=$( [ "$_cpusched_selection" = "rt-bore" ] && echo "ON" || echo "OFF" )
     hardened_status=$( [ "$_cpusched_selection" = "hardened" ] && echo "ON" || echo "OFF" )
-    sched_ext_status=$( [ "$_cpusched_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_cpusched_selection" = "none" ] && echo "ON" || echo "OFF" )
 
     _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
@@ -182,7 +180,6 @@ configure_cpusched() {
         "rt" "Enable RT CPU scheduler" "$rt_status" \
         "rt-bore" "Enable RT-Bore CPU scheduler" "$rt_bore_status" \
         "hardened" "Enable Hardened scheduler" "$hardened_status" \
-        "sched-ext" "Enable SCHED_EXT" "$sched_ext_status" \
         "none" "Do not configure CPU scheduler" "$none_status" \
         3>&1 1>&2 2>&3)
 }
@@ -395,8 +392,6 @@ apply_kernel_configuration() {
             patches+=("${_patchsource}/misc/0001-rt.patch" "${_patchsource}/sched/0001-bore-cachy-rt.patch" "linux-cachyos-rt.install") ;;
         hardened)
             patches+=("${_patchsource}/sched/0001-bore-cachy.patch" "${_patchsource}/misc/0001-hardened.patch") ;;
-        sched-ext)
-            patches+=("${_patchsource}/sched/0001-sched-ext.patch") ;;
     esac
 
     for patch in "${patches[@]}"; do
@@ -413,7 +408,6 @@ apply_kernel_configuration() {
         bore | hardened) scripts/config -e SCHED_BORE ;;
         rt) scripts/config -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
         rt-bore) scripts/config -e SCHED_BORE -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
-        sched-ext) scripts/config -e SCHED_CLASS_EXT ;;
     esac
 
     case "$_preempt" in
