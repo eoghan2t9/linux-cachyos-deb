@@ -1,0 +1,658 @@
+#!/usr/bin/env bash
+
+#############################################################################################################################################################################
+#   The license used for this file and its contents is: BSD-3-Clause                                                                                                        #
+#                                                                                                                                                                           #
+#   Copyright <2024> <Laio O. Seman <laio@iee.org>>                                                                                                                         #
+#   Copyright <2024> <Uri Herrera <uri_herrera@nxos.org>>                                                                                                                   #
+#                                                                                                                                                                           #
+#   Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:                          #
+#                                                                                                                                                                           #
+#    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.                                        #
+#                                                                                                                                                                           #
+#    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer                                      #
+#       in the documentation and/or other materials provided with the distribution.                                                                                         #
+#                                                                                                                                                                           #
+#    3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software                    #
+#       without specific prior written permission.                                                                                                                          #
+#                                                                                                                                                                           #
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,                      #
+#    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS                  #
+#    BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE                 #
+#    GOODS OR SERVICES; LOSS OF USE, DATA,   OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,                      #
+#    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   #
+#############################################################################################################################################################################
+
+
+# -- Exit on errors.
+
+set -eu
+
+
+# -- Variables.
+
+_cachyos_config="CACHYOS"
+_cpusched_selection="cachyos"
+_llvm_lto_selection="none"
+_tick_rate="500"
+_numa="enable"
+_hugepage="always"
+_lru_config="standard"
+_o3_optimization="yes"
+_performance_governor="no"
+_nr_cpus="320"
+_bbr3="yes"
+_march="native"
+_preempt="preempt"
+_tick_type="nohz_full"
+
+
+# -- Functions.
+
+check_deps() {
+    dependencies=(git libncurses-dev curl gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm bc rsync whiptail)
+    for dep in "${dependencies[@]}"; do
+        dpkg -s "$dep" &>/dev/null || sudo apt install -y "$dep"
+    done
+}
+
+
+check_gcc() {
+    command -v gcc &>/dev/null || { echo "Error: GCC is not installed. Please install GCC and try again." >&2; exit 1; }
+}
+
+
+init_script() {
+    check_gcc
+
+    MARCH=$(gcc -Q -march=native --help=target | awk -F'=' '/^  -march=/ {print toupper($2); exit}' | xargs)
+
+    case $MARCH in
+        ZNVER1) MARCH="ZEN" ;;
+        ZNVER2) MARCH="ZEN2" ;;
+        ZNVER3) MARCH="ZEN3" ;;
+        ZNVER4) MARCH="ZEN4" ;;
+        BDVER1) MARCH="BULLDOZER" ;;
+        BDVER2) MARCH="PILEDRIVER" ;;
+        BDVER3) MARCH="STEAMROLLER" ;;
+        BDVER4) MARCH="EXCAVATOR" ;;
+        BTVER1) MARCH="BOBCAT" ;;
+        BTVER2) MARCH="JAGUAR" ;;
+        AMDFAM10) MARCH="MK10" ;;
+        K8-SSE3) MARCH="K8SSE3" ;;
+        BONNELL) MARCH="ATOM" ;;
+        GOLDMONT-PLUS) MARCH="GOLDMONTPLUS" ;;
+        SKYLAKE-AVX512) MARCH="SKYLAKEX" ;;
+        MIVYBRIDGE)
+            scripts/config --disable CONFIG_AGP_AMD64
+            scripts/config --disable CONFIG_MICROCODE_AMD
+            MARCH="MIVYBRIDGE"
+            ;;
+        ICELAKE-CLIENT) MARCH="ICELAKE" ;;
+    esac
+
+    MARCH2="M${MARCH}"
+
+    if ! whiptail --title "CPU Architecture" --yesno "Detected CPU (MARCH) : ${MARCH2}\nIs this correct?" 10 60; then
+        MARCH2=$(whiptail --title "CPU Architecture" --inputbox "Enter CPU type (MARCH):" 10 60 "$MARCH2" 3>&1 1>&2 2>&3)
+    fi
+
+    echo "----------------------------------"
+    echo "| APPLYING AUTO-CPU-OPTIMIZATION |"
+    echo "----------------------------------"
+    echo "[*] DETECTED CPU (MARCH) : ${MARCH2}"
+
+    _march=$MARCH2
+}
+
+
+export NEWT_COLORS='
+    root=white,blue
+    border=black,lightgray
+    window=black,lightgray
+    shadow=black,gray
+    title=black,lightgray
+    button=black,cyan
+    actbutton=white,blue
+    checkbox=black,lightgray
+    actcheckbox=black,cyan
+    entry=black,lightgray
+    label=black,lightgray
+    listbox=black,lightgray
+    actlistbox=black,cyan
+    textbox=black,lightgray
+    acttextbox=black,cyan
+    helpline=white,blue
+    roottext=black,lightgray
+'
+
+configure_cachyos() {
+    local cachyos_status
+    local selection
+
+    cachyos_status=$( [ "$_cachyos_config" = "CACHYOS" ] && echo "ON" || echo "OFF" )
+    selection=$(whiptail --title "CachyOS Configuration" --checklist \
+        "Select optimizations to enable:" 20 78 1 \
+        "CachyOS" "" "$cachyos_status" 3>&1 1>&2 2>&3)
+
+    _cachyos_config=$( [[ "$selection" == *"CachyOS"* ]] && echo "CACHYOS" || echo "none" )
+}
+
+
+configure_cpusched() {
+    local cachyos_status
+    local pds_status
+    local none_status
+
+    cachyos_status=$( [ "$_cpusched_selection" = "cachyos" ] && echo "ON" || echo "OFF" )
+    pds_status=$( [ "$_cpusched_selection" = "pds" ] && echo "ON" || echo "OFF" )
+    none_status=$( [ "$_cpusched_selection" = "none" ] && echo "ON" || echo "OFF" )
+
+    _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
+        "Choose CPU Scheduler (use space to select):" 15 60 3 \
+        "cachyos" "Enable CachyOS CPU scheduler" "$cachyos_status" \
+        "pds" "Enable PDS CPU scheduler" "$pds_status" \
+        "none" "Do not configure CPU scheduler" "$none_status" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_llvm_lto() {
+    local thin_status
+    local full_status
+    local none_status
+
+    thin_status=$( [ "$_llvm_lto_selection" = "thin" ] && echo "ON" || echo "OFF" )
+    full_status=$( [ "$_llvm_lto_selection" = "full" ] && echo "ON" || echo "OFF" )
+    none_status=$( [ "$_llvm_lto_selection" = "none" ] && echo "ON" || echo "OFF" )
+
+    _llvm_lto_selection=$(whiptail --title "LLVM LTO Configuration" --radiolist \
+        "Choose LLVM LTO (use space to select):" 15 60 3 \
+        "thin" "Enable LLVM LTO Thin" "$thin_status" \
+        "full" "Enable LLVM LTO Full" "$full_status" \
+        "none" "Do not configure LLVM LTO" "$none_status" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_tick_rate() {
+    local tick_rate_100
+    local tick_rate_250
+    local tick_rate_500
+    local tick_rate_600
+    local tick_rate_750
+    local tick_rate_1000
+
+    tick_rate_100=$( [ "$_tick_rate" = "100" ] && echo "ON" || echo "OFF" )
+    tick_rate_250=$( [ "$_tick_rate" = "250" ] && echo "ON" || echo "OFF" )
+    tick_rate_500=$( [ "$_tick_rate" = "500" ] && echo "ON" || echo "OFF" )
+    tick_rate_600=$( [ "$_tick_rate" = "600" ] && echo "ON" || echo "OFF" )
+    tick_rate_750=$( [ "$_tick_rate" = "750" ] && echo "ON" || echo "OFF" )
+    tick_rate_1000=$( [ "$_tick_rate" = "1000" ] && echo "ON" || echo "OFF" )
+
+    _tick_rate=$(whiptail --title "Tick Rate Configuration" --radiolist \
+        "Choose Tick Rate (use space to select):" 15 60 6 \
+        "100" "100 Hz" "$tick_rate_100" \
+        "250" "250 Hz" "$tick_rate_250" \
+        "500" "500 Hz" "$tick_rate_500" \
+        "600" "600 Hz" "$tick_rate_600" \
+        "750" "750 Hz" "$tick_rate_750" \
+        "1000" "1000 Hz" "$tick_rate_1000" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_nr_cpus() {
+    _nr_cpus=$(whiptail --title "NR_CPUS Configuration" --inputbox "Enter NR_CPUS value:" 10 60 "$_nr_cpus" 3>&1 1>&2 2>&3)
+}
+
+
+configure_hugepages() {
+    local hugepage_always
+    local hugepage_madvise
+    local hugepage_no
+
+    hugepage_always=$( [ "$_hugepage" = "always" ] && echo "ON" || echo "OFF" )
+    hugepage_madvise=$( [ "$_hugepage" = "madvise" ] && echo "ON" || echo "OFF" )
+    hugepage_no=$( [ "$_hugepage" = "no" ] && echo "ON" || echo "OFF" )
+
+    _hugepage=$(whiptail --title "Hugepages Configuration" --radiolist \
+        "Choose Hugepages (use space to select):" 15 60 3 \
+        "always" "Always use hugepages" "$hugepage_always" \
+        "madvise" "Use hugepages with madvise" "$hugepage_madvise" \
+        "no" "Do not configure Hugepages" "$hugepage_no" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_lru() {
+    local lru_standard
+    local lru_stats
+    local lru_none
+
+    lru_standard=$( [ "$_lru_config" = "standard" ] && echo "ON" || echo "OFF" )
+    lru_stats=$( [ "$_lru_config" = "stats" ] && echo "ON" || echo "OFF" )
+    lru_none=$( [ "$_lru_config" = "none" ] && echo "ON" || echo "OFF" )
+
+    _lru_config=$(whiptail --title "LRU Configuration" --radiolist \
+        "Choose LRU (use space to select):" 15 60 3 \
+        "standard" "Standard LRU" "$lru_standard" \
+        "stats" "LRU with stats" "$lru_stats" \
+        "none" "Do not configure LRU" "$lru_none" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_tick_type() {
+    local tick_type_periodic
+    local tick_type_nohz_full
+    local tick_type_nohz_idle
+
+    tick_type_periodic=$( [ "$_tick_type" = "periodic" ] && echo "ON" || echo "OFF" )
+    tick_type_nohz_full=$( [ "$_tick_type" = "nohz_full" ] && echo "ON" || echo "OFF" )
+    tick_type_nohz_idle=$( [ "$_tick_type" = "nohz_idle" ] && echo "ON" || echo "OFF" )
+
+    _tick_type=$(whiptail --title "Tick Type Configuration" --radiolist \
+        "Choose Tick Type (use space to select):" 15 60 3 \
+        "periodic" "Periodic tick" "$tick_type_periodic" \
+        "nohz_full" "Full dynticks" "$tick_type_nohz_full" \
+        "nohz_idle" "Idle dynticks" "$tick_type_nohz_idle" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_preempt_type() {
+    local preempt_voluntary
+    local preempt_preempt
+    local preempt_none
+
+    preempt_voluntary=$( [ "$_preempt" = "voluntary" ] && echo "ON" || echo "OFF" )
+    preempt_preempt=$( [ "$_preempt" = "preempt" ] && echo "ON" || echo "OFF" )
+    preempt_none=$( [ "$_preempt" = "none" ] && echo "ON" || echo "OFF" )
+
+    _preempt=$(whiptail --title "Preempt Type Configuration" --radiolist \
+        "Choose Preempt Type (use space to select):" 15 60 3 \
+        "voluntary" "Voluntary Preemption" "$preempt_voluntary" \
+        "preempt" "Preemptible Kernel" "$preempt_preempt" \
+        "none" "Do not configure Preempt Type" "$preempt_none" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_system_optimizations() {
+    local o3_status
+    local os_status
+    local performance_status
+    local bbr3_status
+    local vma_status
+    local damon_status
+    local numa_status
+    local zfs_status
+
+    o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
+    os_status=$([ "$_os_optimization" = "yes" ] && echo "ON" || echo "OFF")
+    performance_status=$([ "$_performance_governor" = "yes" ] && echo "ON" || echo "OFF")
+    bbr3_status=$([ "$_bbr3" = "yes" ] && echo "ON" || echo "OFF")
+    vma_status=$([ "$_vma" = "yes" ] && echo "ON" || echo "OFF")
+    damon_status=$([ "$_damon" = "yes" ] && echo "ON" || echo "OFF")
+    numa_status=$([ "$_numa" = "enable" ] && echo "ON" || echo "OFF")
+    zfs_status=$([ "$_zfs" = "yes" ] && echo "ON" || echo "OFF")
+
+    local selection
+    selection=$(whiptail --title "System Optimizations Configuration" --checklist \
+        "Select optimizations to enable:" 20 78 8 \
+        "O3 Optimization" "" "$o3_status" \
+        "OS Optimization" "" "$os_status" \
+        "Performance Governor" "" "$performance_status" \
+        "TCP BBR3" "" "$bbr3_status" \
+        "VMA" "" "$vma_status" \
+        "DAMON" "" "$damon_status" \
+        "NUMA" "" "$numa_status" \
+        "ZFS" "" "$zfs_status" \
+        3>&1 1>&2 2>&3)
+
+    _o3_optimization="no"
+    _os_optimization="no"
+
+    if [[ "$selection" == *"O3 Optimization"* ]]; then
+        _o3_optimization="yes"
+    fi
+
+    if [[ "$selection" == *"OS Optimization"* ]]; then
+        _os_optimization="yes"
+    fi
+
+    _performance_governor=$( [[ "$selection" == *"Performance Governor"* ]] && echo "yes" || echo "no" )
+    _bbr3=$( [[ "$selection" == *"TCP BBR3"* ]] && echo "yes" || echo "no" )
+    _vma=$( [[ "$selection" == *"VMA"* ]] && echo "yes" || echo "no" )
+    _damon=$( [[ "$selection" == *"DAMON"* ]] && echo "yes" || echo "no" )
+    _numa=$( [[ "$selection" == *"NUMA"* ]] && echo "enable" || echo "disable" )
+    _zfs=$( [[ "$selection" == *"ZFS"* ]] && echo "yes" || echo "no" )
+}
+
+
+choose_kernel_option() {
+
+    whiptail --title "Kernel Version" --msgbox "The latest kernel version is $_kv_name" 8 78
+
+}
+
+debing() {
+    local kernel_version arch
+    kernel_version=$(make kernelversion)
+    arch=$(dpkg --print-architecture)
+
+    local kernel_pkg_name="custom-kernel-${kernel_version}"
+    local kernel_pkg_version="${kernel_version}-1"
+    local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
+
+    local headers_pkg_name="custom-kernel-headers-${kernel_version}"
+    local headers_pkg_version="${kernel_version}-1"
+    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
+
+    package_kernel() {
+        local control_file="${kernel_pkg_dir}/DEBIAN/control"
+        mkdir -p "${kernel_pkg_dir}/DEBIAN" \
+                 "${kernel_pkg_dir}/boot" \
+                 "${kernel_pkg_dir}/lib/modules/${kernel_version}" \
+                 "${kernel_pkg_dir}/usr/share/doc/${kernel_pkg_name}"
+
+        cat >"${control_file}" <<EOF
+Package: ${kernel_pkg_name}
+Version: ${kernel_pkg_version}
+Section: kernel
+Priority: optional
+Architecture: ${arch}
+Maintainer: CachyOs
+Description: Custom compiled Linux Kernel
+ Custom compiled Linux Kernel ${kernel_version}
+EOF
+
+        cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
+        cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"*. \
+            "${kernel_pkg_dir}/lib/modules/${kernel_version}/"
+        cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
+        cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
+
+        fakeroot dpkg-deb --build "${kernel_pkg_dir}"
+
+        rm -rf "${kernel_pkg_dir}"
+    }
+
+    package_headers() {
+        local control_file="${headers_pkg_dir}/DEBIAN/control"
+        mkdir -p "${headers_pkg_dir}/DEBIAN" \
+                 "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        cat >"${control_file}" <<EOF
+Package: ${headers_pkg_name}
+Version: ${headers_pkg_version}
+Section: kernel
+Priority: optional
+Architecture: ${arch}
+Maintainer: CachyOs
+Description: Headers for custom compiled Linux Kernel ${kernel_version}
+EOF
+
+        make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        fakeroot dpkg-deb --build "${headers_pkg_dir}"
+
+        rm -rf "${headers_pkg_dir}"
+    }
+
+    package_zfs() {
+        local zfs_pkg_dir="zfs-${kernel_version}"
+        local control_file="${zfs_pkg_dir}/DEBIAN/control"
+        mkdir -p "${zfs_pkg_dir}/DEBIAN"
+
+        cat >"${control_file}" <<EOF
+Package: zfs-${kernel_version}
+Version: ${kernel_pkg_version}
+Section: kernel
+Priority: optional
+Architecture: ${arch}
+Maintainer: CachyOs
+Description: ZFS for custom compiled Linux Kernel ${kernel_version}
+EOF
+
+        install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
+        find "${zfs_pkg_dir}" -name '*.ko' -exec zstd --rm -10 {} +
+
+        fakeroot dpkg-deb --build "${zfs_pkg_dir}"
+
+        rm -rf "${zfs_pkg_dir}"
+    }
+
+    make -j"$(nproc)"
+    mkdir -p /tmp/kernel-modules
+    make modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
+
+    if [[ "$_zfs" == "yes" ]]; then
+        local linux_dir
+        linux_dir=$(pwd)
+        git clone --depth 1 https://github.com/openzfs/zfs
+        cd zfs || exit
+
+        ./autogen.sh
+        ./configure --prefix=/usr \
+                    --sysconfdir=/etc \
+                    --sbindir=/usr/bin \
+                    --libdir=/usr/lib \
+                    --datadir=/usr/share \
+                    --includedir=/usr/include \
+                    --with-udevdir=/lib/udev \
+                    --libexecdir=/usr/lib/zfs \
+                    --with-config=kernel \
+                    --with-linux="${linux_dir}"
+        make -j"$(nproc)"
+        cd "${linux_dir}" || exit
+    fi
+
+    package_kernel
+    package_headers
+
+    if [[ "$_zfs" == "yes" ]]; then
+        package_zfs
+    fi
+}
+
+
+do_things() {
+    local _major _mid _patchsource
+    _major=$(echo "$_kv_name" | grep -oP '^\K[^\.]+')
+    _mid=$(echo "$_kv_name" | grep -oP '^\d+\.\K[^\.]+')
+
+    wget -c "$_kv_url" -O linux.tar.xz
+    tar -xf linux.tar.xz
+
+    cd "linux-$_kv_name" || return 1
+
+    wget -c "https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/linux-cachyos/config" -O .config
+
+    _patchsource="https://raw.githubusercontent.com/cachyos/kernel-patches/master/${_major}.${_mid}"
+
+    local patches=()
+
+    if [[ "$_cachyos_config" == "CACHYOS" ]]; then
+        scripts/config -e CACHYOS
+        patches+=("${_patchsource}/all/0001-cachyos-base-all.patch")
+    fi
+
+    case "$_cpusched_selection" in
+        cachyos)
+            patches+=("${_patchsource}/sched/0001-sched-ext.patch") ;;
+        bore)
+            patches+=("${_patchsource}/sched/0001-bore-cachy.patch") ;;
+        rt)
+            patches+=("${_patchsource}/misc/0001-rt.patch" "linux-cachyos-rt.install") ;;
+        rt-bore)
+            patches+=("${_patchsource}/misc/0001-rt.patch" "${_patchsource}/sched/0001-bore-cachy-rt.patch" "linux-cachyos-rt.install") ;;
+        hardened)
+            patches+=("${_patchsource}/sched/0001-bore-cachy.patch" "${_patchsource}/misc/0001-hardened.patch") ;;
+        sched-ext)
+            patches+=("${_patchsource}/sched/0001-sched-ext.patch") ;;
+    esac
+
+    for patch in "${patches[@]}"; do
+        echo "Downloading and applying $patch"
+        wget -c "$patch"
+        patch -p1 < "$(basename "$patch")"
+    done
+
+    scripts/config -k --disable CONFIG_GENERIC_CPU
+    scripts/config -k --enable "CONFIG_${MARCH2}"
+
+    case "$_cpusched_selection" in
+        cachyos) scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT ;;
+        bore | hardened) scripts/config -e SCHED_BORE ;;
+        eevdf) ;;
+        rt) scripts/config -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
+        rt-bore) scripts/config -e SCHED_BORE -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
+        sched-ext) scripts/config -e SCHED_CLASS_EXT ;;
+    esac
+
+    case "$_preempt" in
+        full) scripts/config -e PREEMPT_BUILD -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -e PREEMPT -e PREEMPT_COUNT -e PREEMPTION -e PREEMPT_DYNAMIC ;;
+        voluntary) scripts/config -e PREEMPT_BUILD -d PREEMPT_NONE -e PREEMPT_VOLUNTARY -d PREEMPT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_DYNAMIC ;;
+        server) scripts/config -e PREEMPT_NONE_BUILD -e PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPTION -d PREEMPT_DYNAMIC ;;
+    esac
+
+    case "$_llvm_lto_selection" in
+        thin) scripts/config -e LTO_CLANG_THIN ;;
+        full) scripts/config -e LTO_CLANG_FULL ;;
+        none) scripts/config -d LTO_CLANG_THIN -d LTO_CLANG_FULL ;;
+    esac
+
+    case "$_tick_rate" in
+        100 | 250 | 500 | 600 | 750 | 1000)
+            scripts/config -d HZ_300 -e "HZ_${_tick_rate}" --set-val HZ "$_tick_rate" ;;
+        300)
+            scripts/config -e HZ_300 --set-val HZ 300 ;;
+    esac
+
+    case "$_tick_type" in
+        periodic) scripts/config -d NO_HZ_IDLE -d NO_HZ_FULL -d NO_HZ -d NO_HZ_COMMON -e HZ_PERIODIC ;;
+        idle) scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE -e NO_HZ -e NO_HZ_COMMON ;;
+        full) scripts/config -d HZ_PERIODIC -d NO_HZ_IDLE -d CONTEXT_TRACKING_FORCE -e NO_HZ_FULL_NODEF -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING ;;
+    esac
+
+    case "$_numa" in
+        enable) scripts/config -e NUMA ;;
+        disable) scripts/config -d NUMA ;;
+        none) ;;  # No action
+    esac
+
+    case "$_hugepage" in
+        always) scripts/config -d TRANSPARENT_HUGEPAGE_MADVISE -e TRANSPARENT_HUGEPAGE_ALWAYS ;;
+        madvise) scripts/config -d TRANSPARENT_HUGEPAGE_ALWAYS -e TRANSPARENT_HUGEPAGE_MADVISE ;;
+        no) ;;  # No action
+    esac
+
+    scripts/config --set-val NR_CPUS "$_nr_cpus"
+
+    case "$_lru_config" in
+        standard) scripts/config -e LRU_GEN -e LRU_GEN_ENABLED -d LRU_GEN_STATS ;;
+        stats) scripts/config -e LRU_GEN -e LRU_GEN_ENABLED -e LRU_GEN_STATS ;;
+        none) scripts/config -d LRU_GEN ;;
+    esac
+
+    if [[ "$_o3_optimization" == "yes" ]]; then
+        scripts/config -d CC_OPTIMIZE_FOR_PERFORMANCE -e CC_OPTIMIZE_FOR_PERFORMANCE_O3
+    fi
+
+    if [[ "$_performance_governor" == "yes" ]]; then
+        scripts/config -d CPU_FREQ_DEFAULT_GOV_SCHEDUTIL -e CPU_FREQ_DEFAULT_GOV_PERFORMANCE
+    fi
+
+    echo "Configurations applied."
+
+    debing
+}
+
+#   ====== START ======
+
+# -- Flag parsing.
+
+if [ "$#" -gt 0 ]; then
+    case "$1" in
+    --help | -h)
+        echo "Usage: $0"
+        echo "Compile a custom Linux kernel and package it into a .deb file for CachyOS"
+        exit 0
+        ;;
+    --build | -b)
+        debing
+        exit 0
+        ;;
+    esac
+fi
+
+
+# -- Fetch the latest kernel version URL and extract the name and extract the kernel name from the URL.
+
+_kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
+_kv_name=$(basename "$_kv_url" .tar.xz)
+
+#   ====== START ======
+
+# -- Run the check_deps function and store the result in dep_status.
+
+check_deps
+
+
+# -- Ask for user confirmation.
+
+whiptail --title "CachyOS Kernel Configuration" --msgbox "This is a beta version of the CachyOS Kernel Configuration script. Use at your own risk." 8 78
+whiptail --title "Secure Boot Warning" --yesno "This script will disable secure boot. Do you want to continue?" 8 78
+
+
+# -- Run main function.
+
+init_script
+
+
+# -- Main menu.
+
+while :; do
+
+    CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option" 25 78 16 \
+        "0" "Choose Kernel Version ($_kv_name)" \
+        "1" "Configure CachyOS" \
+        "2" "Configure CPU Scheduler" \
+        "3" "Configure LLVM LTO" \
+        "4" "Configure Tick Rate" \
+        "5" "Configure NR_CPUS" \
+        "6" "Configure Tick Type" \
+        "7" "Configure Preempt Type" \
+        "8" "Configure LRU" \
+        "9" "Configure Hugepages" \
+        "10" "Configure System Optimizations" \
+        "11" "COMPILE KERNEL" \
+        "12" "Exit" 3>&1 1>&2 2>&3)
+
+    exitstatus=$?
+    if [ $exitstatus != 0 ]; then
+        break
+    fi
+
+    case $CHOICE in
+    0) choose_kernel_option ;;
+    1) configure_cachyos ;;
+    2) configure_cpusched ;;
+    3) configure_llvm_lto ;;
+    4) configure_tick_rate ;;
+    5) configure_nr_cpus ;;
+    6) configure_tick_type ;;
+    7) configure_preempt_type ;;
+    8) configure_lru ;;
+    9) configure_hugepages ;;
+    10) configure_system_optimizations ;;
+    11) do_things ;;
+    12 | q) break ;;
+    *) echo "Invalid Option" ;;
+    esac
+done
+
+
+#   ====== END ======
