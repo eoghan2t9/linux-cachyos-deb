@@ -26,10 +26,10 @@
 
 # -- Exit on errors.
 
-set -eu
+set -xeu
 
 
-# -- Variables.
+# -- Variables to set default options.
 
 _cachyos_config="CACHYOS"
 _cpusched_selection="cachyos"
@@ -45,6 +45,31 @@ _bbr3="yes"
 _march="native"
 _preempt="preempt"
 _tick_type="nohz_full"
+_kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
+_kv_name=$(basename "$_kv_url" .tar.xz)
+
+
+# -- Add colors for whiptail.
+
+export NEWT_COLORS='
+    root=white,blue
+    border=black,lightgray
+    window=black,lightgray
+    shadow=black,gray
+    title=black,lightgray
+    button=black,cyan
+    actbutton=white,blue
+    checkbox=black,lightgray
+    actcheckbox=black,cyan
+    entry=black,lightgray
+    label=black,lightgray
+    listbox=black,lightgray
+    actlistbox=black,cyan
+    textbox=black,lightgray
+    acttextbox=black,cyan
+    helpline=white,blue
+    roottext=black,lightgray
+'
 
 
 # -- Functions.
@@ -105,26 +130,6 @@ init_script() {
     _march=$MARCH2
 }
 
-
-export NEWT_COLORS='
-    root=white,blue
-    border=black,lightgray
-    window=black,lightgray
-    shadow=black,gray
-    title=black,lightgray
-    button=black,cyan
-    actbutton=white,blue
-    checkbox=black,lightgray
-    actcheckbox=black,cyan
-    entry=black,lightgray
-    label=black,lightgray
-    listbox=black,lightgray
-    actlistbox=black,cyan
-    textbox=black,lightgray
-    acttextbox=black,cyan
-    helpline=white,blue
-    roottext=black,lightgray
-'
 
 configure_cachyos() {
     local cachyos_status
@@ -289,6 +294,15 @@ configure_system_optimizations() {
     local numa_status
     local zfs_status
 
+    _o3_optimization="no"
+    _os_optimization="no"
+    _performance_governor="no"
+    _bbr3="no"
+    _vma="no"
+    _damon="no"
+    _numa="disable"
+    _zfs="no"
+
     o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
     os_status=$([ "$_os_optimization" = "yes" ] && echo "ON" || echo "OFF")
     performance_status=$([ "$_performance_governor" = "yes" ] && echo "ON" || echo "OFF")
@@ -310,9 +324,6 @@ configure_system_optimizations() {
         "NUMA" "" "$numa_status" \
         "ZFS" "" "$zfs_status" \
         3>&1 1>&2 2>&3)
-
-    _o3_optimization="no"
-    _os_optimization="no"
 
     if [[ "$selection" == *"O3 Optimization"* ]]; then
         _o3_optimization="yes"
@@ -460,13 +471,13 @@ EOF
 
 do_things() {
     local _major _mid _patchsource
-    _major=$(echo "$_kv_name" | grep -oP '^\K[^\.]+')
-    _mid=$(echo "$_kv_name" | grep -oP '^\d+\.\K[^\.]+')
+    _major=$(echo "$_kv_name" | grep -oP '^\D*(\d+)' | head -n 1)
+    _mid=$(echo "$_kv_name" | grep -oP '\.(\d+)' | head -n 1 | tr -d '.')
 
     wget -c "$_kv_url" -O linux.tar.xz
     tar -xf linux.tar.xz
 
-    cd "linux-$_kv_name" || return 1
+    cd "$_kv_name" || return 1
 
     wget -c "https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/linux-cachyos/config" -O .config
 
@@ -588,11 +599,6 @@ if [ "$#" -gt 0 ]; then
     esac
 fi
 
-
-# -- Fetch the latest kernel version URL and extract the name and extract the kernel name from the URL.
-
-_kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
-_kv_name=$(basename "$_kv_url" .tar.xz)
 
 #   ====== START ======
 
