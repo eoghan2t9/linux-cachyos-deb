@@ -564,7 +564,7 @@ EOF
 
 # -- Link build directory to kernel source for headers.
 
-ln -sv /usr/src/linux-headers-${kernel_version} /lib/modules/${kernel_version}/build
+ln -svf /usr/src/linux-headers-${kernel_version} /lib/modules/${kernel_version}/build
 EOF
 
         chmod 755 "${headers_postinst_file}"
