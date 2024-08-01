@@ -476,7 +476,7 @@ customize_kernel_version() {
         echo "Updating EXTRAVERSION in Makefile..."
         cd "$_kv_name" || return 1 
         sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
-        EXTRAVERSION="-${new_suffix}"  # Set the EXTRAVERSION variable
+        EXTRAVERSION="-${new_suffix}"
         echo "Kernel version updated to ${_kv_name}${EXTRAVERSION}."
         cd -
     else
