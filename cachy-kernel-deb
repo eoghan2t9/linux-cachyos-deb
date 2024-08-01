@@ -131,6 +131,13 @@ init_script() {
 }
 
 
+choose_kernel_option() {
+
+    whiptail --title "Kernel Version" --msgbox "The latest kernel version is $_kv_name" 8 78
+
+}
+
+
 configure_cachyos() {
     local cachyos_status
     local selection
@@ -342,13 +349,6 @@ configure_system_optimizations() {
 }
 
 
-choose_kernel_option() {
-
-    whiptail --title "Kernel Version" --msgbox "The latest kernel version is $_kv_name" 8 78
-
-}
-
-
 do_things() {
     local _major _mid _patchsource
     _major=$(echo "$_kv_name" | grep -oP '\d+' | head -n 1)
@@ -493,6 +493,7 @@ EOF
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
         cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"* "$(pwd)/${kernel_pkg_dir}/lib/modules/${kernel_version}/"
+
         cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
         cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
 
