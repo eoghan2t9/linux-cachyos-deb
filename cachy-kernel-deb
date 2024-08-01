@@ -361,7 +361,7 @@ configure_system_optimizations() {
 }
 
 
-do_things() {
+apply_kernel_configuration() {
     local _major _mid _patchsource
     _major=$(echo "$_kv_name" | grep -oP '\d+' | head -n 1)
     _mid=$(echo "$_kv_name" | grep -oP '\d+\.\K\d+')
@@ -598,7 +598,7 @@ EOF
     #     package_zfs
     # fi
 
-
+    echo "Packages succesfully built."
 }
 
 #   ====== START ======
@@ -649,7 +649,7 @@ while true; do
         "8" "Configure LRU" \
         "9" "Configure Hugepages" \
         "10" "Configure System Optimizations" \
-        "11" "Compile Kernel" \
+        "11" "Apply Kernel Configuration" \
         "12" "Create Debian Packages" \
         "13" "Exit" 3>&1 1>&2 2>&3)
 
@@ -670,7 +670,7 @@ while true; do
         8) configure_lru ;;
         9) configure_hugepages ;;
         10) configure_system_optimizations ;;
-        11) do_things ;;
+        11) apply_kernel_configuration ;;
         12) create_debian_packages ;;
         13 | q) break ;;
         *) echo "Invalid Option" ;;
