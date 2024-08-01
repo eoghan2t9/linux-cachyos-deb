@@ -467,6 +467,53 @@ apply_kernel_configuration() {
     cd -
 }
 
+customize_kernel_version() {
+    local current_version="${_kv_name##*-}"
+    local new_suffix
+    new_suffix=$(whiptail --inputbox "Enter suffix for kernel version (current: ${current_version}):" 10 60 3>&1 1>&2 2>&3)
+
+    if [[ -n $new_suffix ]]; then
+        echo "Updating EXTRAVERSION in Makefile..."
+        cd "$_kv_name" || return 1 
+        sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
+        EXTRAVERSION="-${new_suffix}"  # Set the EXTRAVERSION variable
+        echo "Kernel version updated to ${_kv_name}${EXTRAVERSION}."
+        cd -
+    else
+        echo "Operation canceled."
+        cd -
+    fi
+}
+
+
+show_options() {
+    local modified_kernel_version="${_kv_name}${EXTRAVERSION:-}"
+
+    whiptail --title "Configuration Summary" --msgbox "
+    Kernel Version: $modified_kernel_version
+
+    CPU Architecture: $_march
+    CachyOS Config: $_cachyos_config
+    CPU Scheduler: $_cpusched_selection
+    LLVM LTO: $_llvm_lto_selection
+    Tick Rate: $_tick_rate
+    NR_CPUS: $_nr_cpus
+    Tick Type: $_tick_type
+    Preempt Type: $_preempt
+    LRU Config: $_lru_config
+    Hugepages: $_hugepage
+
+    O3 Optimization: $_o3_optimization
+    OS Optimization: $_os_optimization
+    Performance Governor: $_performance_governor
+    TCP BBR3: $_bbr3
+    VMA: $_vma
+    DAMON: $_damon
+    NUMA: $_numa
+    ZFS: $_zfs
+    " 30 78
+}
+
 
 create_debian_packages() {
     cd "$_kv_name" || return 1
@@ -683,8 +730,10 @@ while true; do
         "9" "Configure Hugepages" \
         "10" "Configure System Optimizations" \
         "11" "Download Kernel and Apply Configuration" \
-        "12" "Create Debian Packages" \
-        "13" "Exit" 3>&1 1>&2 2>&3)
+        "12" "Customize Kernel Version" \
+        "13" "Show Current Configuration" \
+        "14" "Create Debian Packages" \
+        "15" "Exit" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
     if [[ $exitstatus -ne 0 ]]; then
@@ -704,8 +753,10 @@ while true; do
         9) configure_hugepages ;;
         10) configure_system_optimizations ;;
         11) apply_kernel_configuration ;;
-        12) create_debian_packages ;;
-        13 | q) break ;;
+        12) customize_kernel_version ;;
+        13) show_options ;;
+        14) create_debian_packages ;;
+        15 | q) break ;;
         *) echo "Invalid Option" ;;
     esac
 done
