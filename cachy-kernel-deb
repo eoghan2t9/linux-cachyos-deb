@@ -475,7 +475,7 @@ do_things() {
 }
 
 
-debing() {
+create_debian_packages() {
     local kernel_version arch
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
@@ -612,10 +612,6 @@ if [ "$#" -gt 0 ]; then
         echo "Compile a custom Linux kernel and package it into a .deb file for CachyOS"
         exit 0
         ;;
-    --build | -b)
-        debing
-        exit 0
-        ;;
     esac
 fi
 
@@ -640,8 +636,7 @@ init_script
 
 # -- Main menu.
 
-while :; do
-
+while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option" 25 78 16 \
         "0" "Choose Kernel Version ($_kv_name)" \
         "1" "Configure CachyOS" \
@@ -654,29 +649,31 @@ while :; do
         "8" "Configure LRU" \
         "9" "Configure Hugepages" \
         "10" "Configure System Optimizations" \
-        "11" "COMPILE KERNEL" \
-        "12" "Exit" 3>&1 1>&2 2>&3)
+        "11" "Compile Kernel" \
+        "12" "Create Debian Packages" \
+        "13" "Exit" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
-    if [ $exitstatus != 0 ]; then
+    if [[ $exitstatus -ne 0 ]]; then
         break
     fi
 
     case $CHOICE in
-    0) choose_kernel_option ;;
-    1) configure_cachyos ;;
-    2) configure_cpusched ;;
-    3) configure_llvm_lto ;;
-    4) configure_tick_rate ;;
-    5) configure_nr_cpus ;;
-    6) configure_tick_type ;;
-    7) configure_preempt_type ;;
-    8) configure_lru ;;
-    9) configure_hugepages ;;
-    10) configure_system_optimizations ;;
-    11) do_things ;;
-    12 | q) break ;;
-    *) echo "Invalid Option" ;;
+        0) choose_kernel_option ;;
+        1) configure_cachyos ;;
+        2) configure_cpusched ;;
+        3) configure_llvm_lto ;;
+        4) configure_tick_rate ;;
+        5) configure_nr_cpus ;;
+        6) configure_tick_type ;;
+        7) configure_preempt_type ;;
+        8) configure_lru ;;
+        9) configure_hugepages ;;
+        10) configure_system_optimizations ;;
+        11) do_things ;;
+        12) create_debian_packages ;;
+        13 | q) break ;;
+        *) echo "Invalid Option" ;;
     esac
 done
 
