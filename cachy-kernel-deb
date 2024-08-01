@@ -517,7 +517,7 @@ EOF
 
 # -- Update initrd files.
 
-update-initramfs -c -k all
+find /boot -name "initrd.img-${kernel_version}" -exec rm -f {} \;
 update-grub
 EOF
 
