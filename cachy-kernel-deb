@@ -605,7 +605,7 @@ Package: ${headers_pkg_name}
 Version: ${headers_pkg_version}
 Section: kernel
 Priority: optional
-Depends: ${headers_pkg_name}
+Depends: ${kernel_pkg_name}
 Architecture: ${arch}
 Maintainer: Uri Herrera <uri_herrera@nxos.org>
 Description: Headers for Linux Kernel ${kernel_version} with CachyOS patches
