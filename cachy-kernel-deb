@@ -366,7 +366,11 @@ do_things() {
     _major=$(echo "$_kv_name" | grep -oP '\d+' | head -n 1)
     _mid=$(echo "$_kv_name" | grep -oP '\d+\.\K\d+')
 
-    wget -c "$_kv_url" -O linux.tar.xz
+    if ! wget -c "$_kv_url" -O linux.tar.xz; then
+        echo "Failed to download the kernel."
+        return 1
+    fi
+
     tar -xf linux.tar.xz
 
     cd "$_kv_name" || return 1
