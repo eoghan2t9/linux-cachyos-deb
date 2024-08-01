@@ -471,6 +471,14 @@ apply_kernel_configuration() {
 create_debian_packages() {
     cd "$_kv_name" || return 1
 
+    make -j"$(nproc)"
+    modules_build_dir=$(mktemp -d)
+    make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH="$modules_build_dir"
+
+    find "$modules_build_dir" -type f -name '*.ko' -exec zstd -19 -f {} \;
+
+    echo "Kernel modules have been stripped and compressed."
+
     local kernel_version arch
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
@@ -521,10 +529,10 @@ find /boot -name "initrd.img-${kernel_version}" -exec rm -f {} \;
 update-grub
 EOF
 
-        chmod +x "${kernel_postinst_file}" "${kernel_postrm_file}" 
+        chmod 755 "${kernel_postinst_file}" "${kernel_postrm_file}"
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
-        cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"* "$(pwd)/${kernel_pkg_dir}/usr/lib/modules/${kernel_version}/"
+        cp -a "$modules_build_dir/lib/modules/${kernel_version}/"* "$(pwd)/${kernel_pkg_dir}/usr/lib/modules/${kernel_version}/"
 
         cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
         cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
@@ -594,16 +602,6 @@ EOF
 #         rm -rf "${zfs_pkg_dir}"
 #     }
 
-
-    make -j"$(nproc)"
-    mkdir -p /tmp/kernel-modules
-    make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
-
-    find /tmp/kernel-modules -type f -name '*.ko' -exec zstd -19 -f {} \;
-
-    echo "Kernel modules have been installed and compressed."
-
-
     # if [[ "$_zfs" == "yes" ]]; then
     #     local linux_dir
     #     linux_dir=$(pwd)
@@ -633,6 +631,8 @@ EOF
     # fi
 
     echo "Packages succesfully built."
+
+    rm -r "$modules_build_dir"
 
     cd -
 }
