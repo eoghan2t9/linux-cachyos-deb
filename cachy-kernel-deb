@@ -536,7 +536,7 @@ create_debian_packages() {
     arch=$(dpkg --print-architecture)
 
     local kernel_pkg_name="linux-image-cachyos"
-    local kernel_pkg_version="${kernel_version}+nitrux-1"
+    local kernel_pkg_version="0.0.1+nitrux"
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
 
     package_kernel() {
@@ -587,7 +587,7 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${kernel_pkg_dir}"
 
-        mv "*.deb" ../
+        mv -- *.deb ../
 
         rm -rf "${kernel_pkg_dir}" "$modules_build_dir"
     }
@@ -627,7 +627,7 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
-        mv "*.deb" ../
+        mv -- *.deb ../
 
         rm -rf "${headers_pkg_dir}"
     }
