@@ -481,7 +481,7 @@ do_things() {
 
     wget -c "https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/linux-cachyos/config" -O .config
 
-    _patchsource="https://raw.githubusercontent.com/cachyos/kernel-patches/master/${_major}.${_mid}"
+    _patchsource="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}"
 
     local patches=()
 
