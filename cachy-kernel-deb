@@ -461,7 +461,7 @@ apply_kernel_configuration() {
 
 customize_kernel_version() {
     local new_suffix
-    new_suffix=$(whiptail --inputbox "Enter suffix for kernel version (current: ${_kv_name##*-}):" 10 60 3>&1 1>&2 2>&3)
+    new_suffix=$(whiptail --inputbox "Enter suffix for kernel version:" 10 60 3>&1 1>&2 2>&3)
 
     if [[ -n $new_suffix ]]; then
         echo "Updating EXTRAVERSION in Makefile..."
@@ -491,7 +491,9 @@ customize_kernel_version() {
 
 
 show_options() {
-    local modified_kernel_version="${_kv_name}${EXTRAVERSION:-}"
+    local custom_extraversion
+    custom_extraversion=$(grep -oP '^EXTRAVERSION = \K.*' "${_kv_name}/Makefile")
+    local modified_kernel_version="${_kv_name}${custom_extraversion}"
 
     whiptail --title "Configuration Summary" --msgbox "
     Kernel Version: $modified_kernel_version
