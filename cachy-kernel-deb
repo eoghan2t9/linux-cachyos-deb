@@ -478,6 +478,8 @@ apply_kernel_configuration() {
 
 
 create_debian_packages() {
+    cd "$_kv_name" || return 1
+
     local kernel_version arch
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
@@ -580,7 +582,6 @@ EOF
 #         rm -rf "${zfs_pkg_dir}"
 #     }
 
-    cd "$_kv_name" || return 1
 
     make -j"$(nproc)"
     mkdir -p /tmp/kernel-modules
