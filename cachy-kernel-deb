@@ -486,7 +486,7 @@ create_debian_packages() {
 
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
-        local postinst_file="${kernel_pkg_dir}/DEBIAN/postinst"
+        local kernel_postinst_file="${kernel_pkg_dir}/DEBIAN/postinst"
         mkdir -p "${kernel_pkg_dir}/DEBIAN" \
                  "${kernel_pkg_dir}/boot" \
                  "${kernel_pkg_dir}/usr/lib/modules/${kernel_version}" \
@@ -503,7 +503,7 @@ Description: CachyOS compiled Linux Kernel
  CachyOS compiled Linux Kernel ${kernel_version}
 EOF
 
-        cat >"${postinst_file}" <<EOF
+        cat >"${kernel_postinst_file}" <<EOF
 #!/usr/bin/env bash
 
 # -- Create initrd and update GRUB menu to add the new kernel.
@@ -512,7 +512,7 @@ update-initramfs -c -k ${kernel_version}
 update-grub
 EOF
 
-        chmod +x "${postinst_file}"
+        chmod +x "${kernel_postinst_file}"
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
         cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"* "$(pwd)/${kernel_pkg_dir}/usr/lib/modules/${kernel_version}/"
@@ -529,6 +529,7 @@ EOF
 
     package_headers() {
         local control_file="${headers_pkg_dir}/DEBIAN/control"
+        local headers_postinst_file="${kernel_pkg_dir}/DEBIAN/postinst"
         mkdir -p "${headers_pkg_dir}/DEBIAN" \
                  "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
@@ -541,6 +542,16 @@ Architecture: ${arch}
 Maintainer: Uri Herrera <uri_herrera@nxos.org>
 Description: Headers for CachyOS compiled Linux Kernel ${kernel_version}
 EOF
+
+        cat >"${headers_postinst_file}" <<EOF
+#!/usr/bin/env bash
+
+# -- Link build directory to kernel source for headers.
+
+ln -sv /usr/src/linux-headers-${kernel_version} /lib/modules/${kernel_version}/build
+EOF
+
+        chmod +x "${kernel_postinst_file}"
 
         make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
