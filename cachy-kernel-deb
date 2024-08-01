@@ -536,7 +536,7 @@ create_debian_packages() {
     arch=$(dpkg --print-architecture)
 
     local kernel_pkg_name="linux-image-cachyos-${kernel_version}_${arch}"
-    local kernel_pkg_version="+nitrux-${kernel_version}-1"
+    local kernel_pkg_version="${kernel_version}+nitrux-1"
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
 
     package_kernel() {
@@ -593,7 +593,7 @@ EOF
     }
 
     local headers_pkg_name="linux-image-cachyos-headers-${kernel_version}_${arch}"
-    local headers_pkg_version="+nitrux-${kernel_version}-1"
+    local headers_pkg_version="${kernel_pkg_version}"
     local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
 
     package_headers() {
