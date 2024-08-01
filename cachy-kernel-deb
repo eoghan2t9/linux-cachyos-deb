@@ -487,6 +487,7 @@ create_debian_packages() {
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
         local kernel_postinst_file="${kernel_pkg_dir}/DEBIAN/postinst"
+        local kernel_postrm_file="${kernel_pkg_dir}/DEBIAN/postrm"
         mkdir -p "${kernel_pkg_dir}/DEBIAN" \
                  "${kernel_pkg_dir}/boot" \
                  "${kernel_pkg_dir}/usr/lib/modules/${kernel_version}" \
@@ -509,6 +510,15 @@ EOF
 # -- Create initrd and update GRUB menu to add the new kernel.
 
 update-initramfs -c -k ${kernel_version}
+update-grub
+EOF
+
+        cat >"${kernel_postrm_file}" <<EOF
+#!/usr/bin/env bash
+
+# -- Update initrd files.
+
+update-initramfs -c -k all
 update-grub
 EOF
 
