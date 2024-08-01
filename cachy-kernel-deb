@@ -514,7 +514,7 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${kernel_pkg_dir}"
 
-        mv "${kernel_pkg_name}.deb" ../
+        mv "${kernel_pkg_name}-${kernel_pkg_version}.deb" ../
 
         rm -rf "${kernel_pkg_dir}"
     }
@@ -538,7 +538,7 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
-        mv "${kernel_pkg_name}.deb" ../
+        mv "${headers_pkg_name}-${headers_pkg_version}.deb" ../
 
         rm -rf "${headers_pkg_dir}"
     }
