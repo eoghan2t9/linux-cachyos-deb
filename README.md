@@ -27,8 +27,8 @@ The script offers a variety of configuration options:
 To use the script, follow these steps:
 
 1. Clone the repository to your local machine.
-2. Make the script executable with `chmod +x cachy-kernel-deb`.
-3. Run the script with `bash cachy-kernel-deb` and follow the on-screen prompts to configure the kernel and build the packages.
+2. Make the script executable with `chmod +x cachy-kernel-deb` and move the script to a directory in the `$PATH`.
+3. Run the script with `cachy-kernel-deb` and follow the on-screen prompts to configure the kernel and build the packages.
 
 # Advanced Configuration
 
