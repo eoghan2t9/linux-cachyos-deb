@@ -490,6 +490,7 @@ create_debian_packages() {
 
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
+        local postinst_file="${kernel_pkg_dir}/DEBIAN/postinst"
         mkdir -p "${kernel_pkg_dir}/DEBIAN" \
                  "${kernel_pkg_dir}/boot" \
                  "${kernel_pkg_dir}/usr/lib/modules/${kernel_version}" \
@@ -505,6 +506,17 @@ Maintainer: Uri Herrera <uri_herrera@nxos.org>
 Description: CachyOS compiled Linux Kernel
  CachyOS compiled Linux Kernel ${kernel_version}
 EOF
+
+        cat >"${postinst_file}" <<EOF
+#!/usr/bin/env bash
+
+# -- Create initrd and update GRUB menu to add the new kernel.
+
+update-initramfs -c -k ${kernel_pkg_name}
+update-grub
+EOF
+
+        chmod +x "${postinst_file}"
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
         cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"* "$(pwd)/${kernel_pkg_dir}/usr/lib/modules/${kernel_version}/"
