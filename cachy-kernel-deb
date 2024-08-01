@@ -471,8 +471,8 @@ EOF
 
 do_things() {
     local _major _mid _patchsource
-    _major=$(echo "$_kv_name" | grep -oP '^\D*(\d+)' | head -n 1)
-    _mid=$(echo "$_kv_name" | grep -oP '\.(\d+)' | head -n 1 | tr -d '.')
+    _major=$(echo "$_kv_name" | grep -oP '\d+' | head -n 1)
+    _mid=$(echo "$_kv_name" | grep -oP '\d+\.\K\d+')
 
     wget -c "$_kv_url" -O linux.tar.xz
     tar -xf linux.tar.xz
