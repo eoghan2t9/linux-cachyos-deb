@@ -2,7 +2,7 @@
 
 This repository contains a script for building the CachyOS kernel with various optimizations tailored to your system's CPU architecture. The script automates the configuration and optimization of the kernel build according to your hardware and preferences.
 
-## Prerequisites
+# Prerequisites
 
 Before running the script, ensure you have the following prerequisites installed:
 
@@ -12,7 +12,7 @@ Before running the script, ensure you have the following prerequisites installed
 
 You can install these dependencies using your distribution's package manager.
 
-## Features
+# Features
 
 The script offers a variety of configuration options:
 
@@ -22,7 +22,7 @@ The script offers a variety of configuration options:
 - Support for multiple kernel configurations such as NUMA, NR_CPUS, Hugepages, and LRU.
 - Application of O3 optimization and performance governor settings.
 
-## Usage
+# Usage
 
 To use the script, follow these steps:
 
@@ -38,7 +38,7 @@ To use the script, follow these steps:
 
 4. Run the script with `bash cachy0kernel-deb -b` to build a Debian package.
 
-## Advanced Configuration
+# Advanced Configuration
 
 The script includes advanced configuration options for users who want to fine-tune their kernel:
 
@@ -52,10 +52,16 @@ The script includes advanced configuration options for users who want to fine-tu
 - **O3 Optimization**: Apply O3 optimization for performance improvement.
 - **Performance Governor**: Set the CPU frequency scaling governor to performance.
 
-## Contributing
+# Contributing
 
 Contributions are welcome! If you have suggestions for improving the script or adding new features, please open an issue or submit a pull request.
 
-## License
+# License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+# Issues
+If you find problems with the contents of this repository please create an issue.
+
+©2024 Nitrux Latinoamericana S.C.
