@@ -523,60 +523,60 @@ EOF
         rm -rf "${headers_pkg_dir}"
     }
 
-    package_zfs() {
-        local zfs_pkg_dir="zfs-${kernel_version}"
-        local control_file="${zfs_pkg_dir}/DEBIAN/control"
-        mkdir -p "${zfs_pkg_dir}/DEBIAN"
+#     package_zfs() {
+#         local zfs_pkg_dir="zfs-${kernel_version}"
+#         local control_file="${zfs_pkg_dir}/DEBIAN/control"
+#         mkdir -p "${zfs_pkg_dir}/DEBIAN"
 
-        cat >"${control_file}" <<EOF
-Package: zfs-${kernel_version}
-Version: ${kernel_pkg_version}
-Section: kernel
-Priority: optional
-Architecture: ${arch}
-Maintainer: CachyOs
-Description: ZFS for custom compiled Linux Kernel ${kernel_version}
-EOF
+#         cat >"${control_file}" <<EOF
+# Package: zfs-${kernel_version}
+# Version: ${kernel_pkg_version}
+# Section: kernel
+# Priority: optional
+# Architecture: ${arch}
+# Maintainer: CachyOs
+# Description: ZFS for custom compiled Linux Kernel ${kernel_version}
+# EOF
 
-        install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
-        find "${zfs_pkg_dir}" -name '*.ko' -exec zstd --rm -10 {} +
+#         install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
+#         find "${zfs_pkg_dir}" -name '*.ko' -exec zstd --rm -10 {} +
 
-        fakeroot dpkg-deb --build "${zfs_pkg_dir}"
+#         fakeroot dpkg-deb --build "${zfs_pkg_dir}"
 
-        rm -rf "${zfs_pkg_dir}"
-    }
+#         rm -rf "${zfs_pkg_dir}"
+#     }
 
     make -j"$(nproc)"
     mkdir -p /tmp/kernel-modules
     make modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
 
-    if [[ "$_zfs" == "yes" ]]; then
-        local linux_dir
-        linux_dir=$(pwd)
-        git clone --depth 1 https://github.com/openzfs/zfs
-        cd zfs || exit
+    # if [[ "$_zfs" == "yes" ]]; then
+    #     local linux_dir
+    #     linux_dir=$(pwd)
+    #     git clone --depth 1 https://github.com/openzfs/zfs
+    #     cd zfs || exit
 
-        ./autogen.sh
-        ./configure --prefix=/usr \
-                    --sysconfdir=/etc \
-                    --sbindir=/usr/bin \
-                    --libdir=/usr/lib \
-                    --datadir=/usr/share \
-                    --includedir=/usr/include \
-                    --with-udevdir=/lib/udev \
-                    --libexecdir=/usr/lib/zfs \
-                    --with-config=kernel \
-                    --with-linux="${linux_dir}"
-        make -j"$(nproc)"
-        cd "${linux_dir}" || exit
-    fi
+    #     ./autogen.sh
+    #     ./configure --prefix=/usr \
+    #                 --sysconfdir=/etc \
+    #                 --sbindir=/usr/bin \
+    #                 --libdir=/usr/lib \
+    #                 --datadir=/usr/share \
+    #                 --includedir=/usr/include \
+    #                 --with-udevdir=/lib/udev \
+    #                 --libexecdir=/usr/lib/zfs \
+    #                 --with-config=kernel \
+    #                 --with-linux="${linux_dir}"
+    #     make -j"$(nproc)"
+    #     cd "${linux_dir}" || exit
+    # fi
 
     package_kernel
     package_headers
 
-    if [[ "$_zfs" == "yes" ]]; then
-        package_zfs
-    fi
+    # if [[ "$_zfs" == "yes" ]]; then
+    #     package_zfs
+    # fi
 }
 
 #   ====== START ======
