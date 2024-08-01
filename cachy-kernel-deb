@@ -507,8 +507,7 @@ Section: kernel
 Priority: optional
 Architecture: ${arch}
 Maintainer: Uri Herrera <uri_herrera@nxos.org>
-Description: CachyOS compiled Linux Kernel
- CachyOS compiled Linux Kernel ${kernel_version}
+Description: Linux Kernel ${kernel_version} with CachyOS patches
 EOF
 
         cat >"${kernel_postinst_file}" <<EOF
@@ -541,12 +540,12 @@ EOF
 
         mv "${kernel_pkg_name}-${kernel_pkg_version}.deb" ../
 
-        rm -rf "${kernel_pkg_dir}"
+        rm -rf "${kernel_pkg_dir}" "$modules_build_dir"
     }
 
     package_headers() {
         local control_file="${headers_pkg_dir}/DEBIAN/control"
-        local headers_postinst_file="${kernel_pkg_dir}/DEBIAN/postinst"
+        local headers_postinst_file="${headers_pkg_dir}/DEBIAN/postinst"
         mkdir -p "${headers_pkg_dir}/DEBIAN" \
                  "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
@@ -557,7 +556,7 @@ Section: kernel
 Priority: optional
 Architecture: ${arch}
 Maintainer: Uri Herrera <uri_herrera@nxos.org>
-Description: Headers for CachyOS compiled Linux Kernel ${kernel_version}
+Description: Headers for Linux Kernel ${kernel_version} with CachyOS patches
 EOF
 
         cat >"${headers_postinst_file}" <<EOF
@@ -568,7 +567,7 @@ EOF
 ln -sv /usr/src/linux-headers-${kernel_version} /lib/modules/${kernel_version}/build
 EOF
 
-        chmod +x "${kernel_postinst_file}"
+        chmod 755 "${headers_postinst_file}"
 
         make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
@@ -632,8 +631,6 @@ EOF
 
     echo "Packages succesfully built."
 
-    rm -r "$modules_build_dir"
-
     cd -
 }
 
@@ -685,7 +682,7 @@ while true; do
         "8" "Configure LRU" \
         "9" "Configure Hugepages" \
         "10" "Configure System Optimizations" \
-        "11" "Apply Kernel Configuration" \
+        "11" "Download Kernel and Apply Configuration" \
         "12" "Create Debian Packages" \
         "13" "Exit" 3>&1 1>&2 2>&3)
 
