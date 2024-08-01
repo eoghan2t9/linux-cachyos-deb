@@ -588,7 +588,12 @@ EOF
 
     make -j"$(nproc)"
     mkdir -p /tmp/kernel-modules
-    make modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
+    make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
+
+    find /tmp/kernel-modules -type f -name '*.ko' -exec zstd -19 -f {} \;
+
+    echo "Kernel modules have been installed and compressed."
+
 
     # if [[ "$_zfs" == "yes" ]]; then
     #     local linux_dir
