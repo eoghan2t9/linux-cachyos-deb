@@ -535,7 +535,7 @@ create_debian_packages() {
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
 
-    local kernel_pkg_name="linux-image-cachyos"
+    local kernel_pkg_name="linux-image-cachyos-${kernel_version}"
     local kernel_pkg_version="0.0.1+nitrux"
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
 
@@ -592,7 +592,7 @@ EOF
         rm -rf "${kernel_pkg_dir}" "$modules_build_dir"
     }
 
-    local headers_pkg_name="linux-headers-cachyos"
+    local headers_pkg_name="linux-headers-cachyos-${kernel_version}"
     local headers_pkg_version="${kernel_pkg_version}"
     local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}_${arch}"
 
