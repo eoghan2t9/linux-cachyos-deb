@@ -460,15 +460,29 @@ apply_kernel_configuration() {
 }
 
 customize_kernel_version() {
-    local current_version="${_kv_name##*-}"
     local new_suffix
-    new_suffix=$(whiptail --inputbox "Enter suffix for kernel version (current: ${current_version}):" 10 60 3>&1 1>&2 2>&3)
+    new_suffix=$(whiptail --inputbox "Enter suffix for kernel version (current: ${_kv_name##*-}):" 10 60 3>&1 1>&2 2>&3)
 
     if [[ -n $new_suffix ]]; then
         echo "Updating EXTRAVERSION in Makefile..."
-        cd "$_kv_name" || return 1 
-        sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
-        echo "Kernel version updated to ${_kv_name}-$(make kernelversion)${EXTRAVERSION}."
+        cd "$_kv_name" || return 1
+
+        if grep -q '^EXTRAVERSION =' Makefile; then
+            echo "Current EXTRAVERSION: $(grep '^EXTRAVERSION =' Makefile)"
+            # If EXTRAVERSION is empty, replace it with a proper line
+            if grep -q '^EXTRAVERSION = *$' Makefile; then
+                sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = -${new_suffix}/" Makefile
+            else
+                sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
+            fi
+        else
+            echo "EXTRAVERSION not found in Makefile. Adding it..."
+            echo "EXTRAVERSION = -${new_suffix}" >> Makefile
+        fi
+
+        echo "Updated EXTRAVERSION to: $(grep '^EXTRAVERSION =' Makefile)"
+        echo "Kernel version updated to $(make kernelversion)."
+        
         cd -
     else
         echo "Operation canceled."
