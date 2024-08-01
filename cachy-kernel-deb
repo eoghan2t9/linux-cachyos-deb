@@ -516,7 +516,7 @@ EOF
 
 # -- Create initrd and update GRUB menu to add the new kernel.
 
-update-initramfs -c -k ${kernel_pkg_name}
+update-initramfs -c -k ${kernel_version}
 update-grub
 EOF
 
