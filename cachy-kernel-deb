@@ -465,11 +465,11 @@ debing() {
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
 
-    local kernel_pkg_name="custom-kernel-${kernel_version}"
+    local kernel_pkg_name="cachyos-kernel-${kernel_version}"
     local kernel_pkg_version="${kernel_version}-1"
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
 
-    local headers_pkg_name="custom-kernel-headers-${kernel_version}"
+    local headers_pkg_name="cachyos-kernel-headers-${kernel_version}"
     local headers_pkg_version="${kernel_version}-1"
     local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
 
@@ -486,9 +486,9 @@ Version: ${kernel_pkg_version}
 Section: kernel
 Priority: optional
 Architecture: ${arch}
-Maintainer: CachyOs
-Description: Custom compiled Linux Kernel
- Custom compiled Linux Kernel ${kernel_version}
+Maintainer: Uri Herrera <uri_herrera@nxos.org>
+Description: CachyOS compiled Linux Kernel
+ CachyOS compiled Linux Kernel ${kernel_version}
 EOF
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
@@ -497,7 +497,7 @@ EOF
         cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
         cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
 
-        fakeroot dpkg-deb --build "${kernel_pkg_dir}"
+        fakeroot dpkg-deb -Zxz --build --root-owner-group "${kernel_pkg_dir}"
 
         rm -rf "${kernel_pkg_dir}"
     }
@@ -513,13 +513,13 @@ Version: ${headers_pkg_version}
 Section: kernel
 Priority: optional
 Architecture: ${arch}
-Maintainer: CachyOs
-Description: Headers for custom compiled Linux Kernel ${kernel_version}
+Maintainer: Uri Herrera <uri_herrera@nxos.org>
+Description: Headers for CachyOS compiled Linux Kernel ${kernel_version}
 EOF
 
         make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
-        fakeroot dpkg-deb --build "${headers_pkg_dir}"
+        fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
         rm -rf "${headers_pkg_dir}"
     }
@@ -535,8 +535,8 @@ EOF
 # Section: kernel
 # Priority: optional
 # Architecture: ${arch}
-# Maintainer: CachyOs
-# Description: ZFS for custom compiled Linux Kernel ${kernel_version}
+# Maintainer: Uri Herrera <uri_herrera@nxos.org>
+# Description: ZFS for CachyOS compiled Linux Kernel ${kernel_version}
 # EOF
 
 #         install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
