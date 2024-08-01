@@ -39,8 +39,8 @@ _march="native"
 _cachyos_config="CACHYOS"
 _cpusched_selection="bore"
 _llvm_lto_selection="none"
-_tick_rate="100"
-_nr_cpus="16"
+_tick_rate="1000"
+_nr_cpus="32"
 _tick_type="nohz_full"
 _preempt="preempt"
 _lru_config="standard"
@@ -319,15 +319,6 @@ configure_system_optimizations() {
     local damon_status
     local numa_status
     local zfs_status
-
-    _o3_optimization="no"
-    _os_optimization="no"
-    _performance_governor="no"
-    _bbr3="no"
-    _vma="no"
-    _damon="no"
-    _numa="disable"
-    _zfs="no"
 
     o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
     os_status=$([ "$_os_optimization" = "yes" ] && echo "ON" || echo "OFF")
