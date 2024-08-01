@@ -469,7 +469,6 @@ customize_kernel_version() {
 
         if grep -q '^EXTRAVERSION =' Makefile; then
             echo "Current EXTRAVERSION: $(grep '^EXTRAVERSION =' Makefile)"
-            # If EXTRAVERSION is empty, replace it with a proper line
             if grep -q '^EXTRAVERSION = *$' Makefile; then
                 sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = -${new_suffix}/" Makefile
             else
