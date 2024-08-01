@@ -521,7 +521,7 @@ find /boot -name "initrd.img-${kernel_version}" -exec rm -f {} \;
 update-grub
 EOF
 
-        chmod +x "${kernel_postinst_file}"
+        chmod +x "${kernel_postrm_file}" 
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
         cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"* "$(pwd)/${kernel_pkg_dir}/usr/lib/modules/${kernel_version}/"
