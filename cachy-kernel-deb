@@ -348,126 +348,6 @@ choose_kernel_option() {
 
 }
 
-debing() {
-    local kernel_version arch
-    kernel_version=$(make kernelversion)
-    arch=$(dpkg --print-architecture)
-
-    local kernel_pkg_name="custom-kernel-${kernel_version}"
-    local kernel_pkg_version="${kernel_version}-1"
-    local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
-
-    local headers_pkg_name="custom-kernel-headers-${kernel_version}"
-    local headers_pkg_version="${kernel_version}-1"
-    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
-
-    package_kernel() {
-        local control_file="${kernel_pkg_dir}/DEBIAN/control"
-        mkdir -p "${kernel_pkg_dir}/DEBIAN" \
-                 "${kernel_pkg_dir}/boot" \
-                 "${kernel_pkg_dir}/lib/modules/${kernel_version}" \
-                 "${kernel_pkg_dir}/usr/share/doc/${kernel_pkg_name}"
-
-        cat >"${control_file}" <<EOF
-Package: ${kernel_pkg_name}
-Version: ${kernel_pkg_version}
-Section: kernel
-Priority: optional
-Architecture: ${arch}
-Maintainer: CachyOs
-Description: Custom compiled Linux Kernel
- Custom compiled Linux Kernel ${kernel_version}
-EOF
-
-        cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
-        cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"*. \
-            "${kernel_pkg_dir}/lib/modules/${kernel_version}/"
-        cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
-        cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
-
-        fakeroot dpkg-deb --build "${kernel_pkg_dir}"
-
-        rm -rf "${kernel_pkg_dir}"
-    }
-
-    package_headers() {
-        local control_file="${headers_pkg_dir}/DEBIAN/control"
-        mkdir -p "${headers_pkg_dir}/DEBIAN" \
-                 "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
-
-        cat >"${control_file}" <<EOF
-Package: ${headers_pkg_name}
-Version: ${headers_pkg_version}
-Section: kernel
-Priority: optional
-Architecture: ${arch}
-Maintainer: CachyOs
-Description: Headers for custom compiled Linux Kernel ${kernel_version}
-EOF
-
-        make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
-
-        fakeroot dpkg-deb --build "${headers_pkg_dir}"
-
-        rm -rf "${headers_pkg_dir}"
-    }
-
-    package_zfs() {
-        local zfs_pkg_dir="zfs-${kernel_version}"
-        local control_file="${zfs_pkg_dir}/DEBIAN/control"
-        mkdir -p "${zfs_pkg_dir}/DEBIAN"
-
-        cat >"${control_file}" <<EOF
-Package: zfs-${kernel_version}
-Version: ${kernel_pkg_version}
-Section: kernel
-Priority: optional
-Architecture: ${arch}
-Maintainer: CachyOs
-Description: ZFS for custom compiled Linux Kernel ${kernel_version}
-EOF
-
-        install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
-        find "${zfs_pkg_dir}" -name '*.ko' -exec zstd --rm -10 {} +
-
-        fakeroot dpkg-deb --build "${zfs_pkg_dir}"
-
-        rm -rf "${zfs_pkg_dir}"
-    }
-
-    make -j"$(nproc)"
-    mkdir -p /tmp/kernel-modules
-    make modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
-
-    if [[ "$_zfs" == "yes" ]]; then
-        local linux_dir
-        linux_dir=$(pwd)
-        git clone --depth 1 https://github.com/openzfs/zfs
-        cd zfs || exit
-
-        ./autogen.sh
-        ./configure --prefix=/usr \
-                    --sysconfdir=/etc \
-                    --sbindir=/usr/bin \
-                    --libdir=/usr/lib \
-                    --datadir=/usr/share \
-                    --includedir=/usr/include \
-                    --with-udevdir=/lib/udev \
-                    --libexecdir=/usr/lib/zfs \
-                    --with-config=kernel \
-                    --with-linux="${linux_dir}"
-        make -j"$(nproc)"
-        cd "${linux_dir}" || exit
-    fi
-
-    package_kernel
-    package_headers
-
-    if [[ "$_zfs" == "yes" ]]; then
-        package_zfs
-    fi
-}
-
 
 do_things() {
     local _major _mid _patchsource
@@ -577,8 +457,126 @@ do_things() {
     fi
 
     echo "Configurations applied."
+}
 
-    debing
+
+debing() {
+    local kernel_version arch
+    kernel_version=$(make kernelversion)
+    arch=$(dpkg --print-architecture)
+
+    local kernel_pkg_name="custom-kernel-${kernel_version}"
+    local kernel_pkg_version="${kernel_version}-1"
+    local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
+
+    local headers_pkg_name="custom-kernel-headers-${kernel_version}"
+    local headers_pkg_version="${kernel_version}-1"
+    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
+
+    package_kernel() {
+        local control_file="${kernel_pkg_dir}/DEBIAN/control"
+        mkdir -p "${kernel_pkg_dir}/DEBIAN" \
+                 "${kernel_pkg_dir}/boot" \
+                 "${kernel_pkg_dir}/lib/modules/${kernel_version}" \
+                 "${kernel_pkg_dir}/usr/share/doc/${kernel_pkg_name}"
+
+        cat >"${control_file}" <<EOF
+Package: ${kernel_pkg_name}
+Version: ${kernel_pkg_version}
+Section: kernel
+Priority: optional
+Architecture: ${arch}
+Maintainer: CachyOs
+Description: Custom compiled Linux Kernel
+ Custom compiled Linux Kernel ${kernel_version}
+EOF
+
+        cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
+        cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"*. "${kernel_pkg_dir}/lib/modules/${kernel_version}/"
+        cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
+        cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
+
+        fakeroot dpkg-deb --build "${kernel_pkg_dir}"
+
+        rm -rf "${kernel_pkg_dir}"
+    }
+
+    package_headers() {
+        local control_file="${headers_pkg_dir}/DEBIAN/control"
+        mkdir -p "${headers_pkg_dir}/DEBIAN" \
+                 "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        cat >"${control_file}" <<EOF
+Package: ${headers_pkg_name}
+Version: ${headers_pkg_version}
+Section: kernel
+Priority: optional
+Architecture: ${arch}
+Maintainer: CachyOs
+Description: Headers for custom compiled Linux Kernel ${kernel_version}
+EOF
+
+        make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        fakeroot dpkg-deb --build "${headers_pkg_dir}"
+
+        rm -rf "${headers_pkg_dir}"
+    }
+
+    package_zfs() {
+        local zfs_pkg_dir="zfs-${kernel_version}"
+        local control_file="${zfs_pkg_dir}/DEBIAN/control"
+        mkdir -p "${zfs_pkg_dir}/DEBIAN"
+
+        cat >"${control_file}" <<EOF
+Package: zfs-${kernel_version}
+Version: ${kernel_pkg_version}
+Section: kernel
+Priority: optional
+Architecture: ${arch}
+Maintainer: CachyOs
+Description: ZFS for custom compiled Linux Kernel ${kernel_version}
+EOF
+
+        install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
+        find "${zfs_pkg_dir}" -name '*.ko' -exec zstd --rm -10 {} +
+
+        fakeroot dpkg-deb --build "${zfs_pkg_dir}"
+
+        rm -rf "${zfs_pkg_dir}"
+    }
+
+    make -j"$(nproc)"
+    mkdir -p /tmp/kernel-modules
+    make modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
+
+    if [[ "$_zfs" == "yes" ]]; then
+        local linux_dir
+        linux_dir=$(pwd)
+        git clone --depth 1 https://github.com/openzfs/zfs
+        cd zfs || exit
+
+        ./autogen.sh
+        ./configure --prefix=/usr \
+                    --sysconfdir=/etc \
+                    --sbindir=/usr/bin \
+                    --libdir=/usr/lib \
+                    --datadir=/usr/share \
+                    --includedir=/usr/include \
+                    --with-udevdir=/lib/udev \
+                    --libexecdir=/usr/lib/zfs \
+                    --with-config=kernel \
+                    --with-linux="${linux_dir}"
+        make -j"$(nproc)"
+        cd "${linux_dir}" || exit
+    fi
+
+    package_kernel
+    package_headers
+
+    if [[ "$_zfs" == "yes" ]]; then
+        package_zfs
+    fi
 }
 
 #   ====== START ======
