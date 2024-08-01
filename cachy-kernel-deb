@@ -492,7 +492,7 @@ Description: Custom compiled Linux Kernel
 EOF
 
         cp "arch/x86/boot/bzImage" "${kernel_pkg_dir}/boot/vmlinuz-${kernel_version}"
-        cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"*. "${kernel_pkg_dir}/lib/modules/${kernel_version}/"
+        cp -a "/tmp/kernel-modules/lib/modules/${kernel_version}/"*. "$(pwd)/${kernel_pkg_dir}/lib/modules/${kernel_version}/"
         cp "System.map" "${kernel_pkg_dir}/boot/System.map-${kernel_version}"
         cp ".config" "${kernel_pkg_dir}/boot/config-${kernel_version}"
 
