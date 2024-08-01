@@ -31,22 +31,29 @@ set -eu
 
 # -- Variables to set default options.
 
+_kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
+_kv_name=$(basename "$_kv_url" .tar.xz)
+
+_march="native"
+
 _cachyos_config="CACHYOS"
 _cpusched_selection="cachyos"
 _llvm_lto_selection="none"
 _tick_rate="500"
-_numa="enable"
-_hugepage="always"
-_lru_config="standard"
-_o3_optimization="yes"
-_performance_governor="no"
 _nr_cpus="320"
-_bbr3="yes"
-_march="native"
-_preempt="preempt"
 _tick_type="nohz_full"
-_kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
-_kv_name=$(basename "$_kv_url" .tar.xz)
+_preempt="preempt"
+_lru_config="standard"
+_hugepage="always"
+
+_o3_optimization="yes"
+_os_optimization="no"
+_performance_governor="no"
+_bbr3="yes"
+_vma="no"
+_damon="no"
+_numa="enable"
+_zfs="no"
 
 
 # -- Add colors for whiptail.
