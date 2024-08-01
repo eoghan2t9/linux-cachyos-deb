@@ -535,9 +535,9 @@ create_debian_packages() {
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
 
-    local kernel_pkg_name="linux-image-cachyos-${kernel_version}_${arch}"
-    local kernel_pkg_version="${kernel_version}-nitrux-1"
-    local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}"
+    local kernel_pkg_name="linux-image-cachyos"
+    local kernel_pkg_version="${kernel_version}+nitrux-1"
+    local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
 
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
@@ -587,14 +587,14 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${kernel_pkg_dir}"
 
-        mv "${kernel_pkg_name}-${kernel_pkg_version}.deb" ../
+        mv "*.deb" ../
 
         rm -rf "${kernel_pkg_dir}" "$modules_build_dir"
     }
 
-    local headers_pkg_name="linux-image-cachyos-headers-${kernel_version}_${arch}"
+    local headers_pkg_name="linux-headers-cachyos"
     local headers_pkg_version="${kernel_pkg_version}"
-    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}"
+    local headers_pkg_dir="${headers_pkg_name}-${headers_pkg_version}_${arch}"
 
     package_headers() {
         local control_file="${headers_pkg_dir}/DEBIAN/control"
@@ -627,7 +627,7 @@ EOF
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
-        mv "${headers_pkg_name}-${headers_pkg_version}.deb" ../
+        mv "*.deb" ../
 
         rm -rf "${headers_pkg_dir}"
     }
