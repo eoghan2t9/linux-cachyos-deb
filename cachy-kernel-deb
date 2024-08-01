@@ -472,6 +472,8 @@ apply_kernel_configuration() {
     fi
 
     echo "Configurations applied."
+
+    cd -
 }
 
 
@@ -578,6 +580,8 @@ EOF
 #         rm -rf "${zfs_pkg_dir}"
 #     }
 
+    cd "$_kv_name" || return 1
+
     make -j"$(nproc)"
     mkdir -p /tmp/kernel-modules
     make modules_install INSTALL_MOD_PATH=/tmp/kernel-modules
@@ -611,6 +615,8 @@ EOF
     # fi
 
     echo "Packages succesfully built."
+
+    cd -
 }
 
 #   ====== START ======
