@@ -434,9 +434,9 @@ apply_kernel_configuration() {
     fi
 
 
-    # -- Apply common CachyOS patch.
+    # -- Apply CachyOS patch.
 
-    local all_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
+    local cachyos_optimizations_patch="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
 
     case "$_base_patch_selection" in
         "cachyos-base-all") patch_files=("0001-cachyos-base-all.patch") ;;
@@ -452,7 +452,7 @@ apply_kernel_configuration() {
 
     for patch_file in "${patch_files[@]}"; do
         echo "Applying scheduler patch: $patch_file"
-        if ! patch -p1 < <(wget -c "${all_patch_base_url}${patch_file}" -O -); then
+        if ! patch -p1 < <(wget -c "${cachyos_optimizations_patch}${patch_file}" -O -); then
             echo "Failed to download and apply the patch: $patch_file"
             whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
             return 1
