@@ -441,7 +441,7 @@ apply_kernel_configuration() {
     case "$_base_patch_selection" in
         "cachyos-base-all")
             patch_files=("0001-cachyos-base-all.patch")
-            scripts/config -e CACHYOS
+            scripts/config -e CONFIG_CACHY
             ;;
         "none")
             echo "No base selected for patching."
@@ -553,7 +553,7 @@ apply_kernel_configuration() {
 
     case "$_tick_rate" in
         100 | 250 | 300 | 500 | 600 | 750 | 1000)
-            scripts/config -d HZ_100 -d HZ_250 -d HZ_500 -d HZ_600 -d HZ_750 -d HZ_1000
+            scripts/config -d HZ_100 -d HZ_250 -d HZ_300 -d HZ_500 -d HZ_600 -d HZ_750 -d HZ_1000
             scripts/config -e "HZ_${_tick_rate}" --set-val HZ "${_tick_rate}"
             ;;
     esac
