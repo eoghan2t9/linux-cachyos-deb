@@ -456,7 +456,7 @@ apply_kernel_configuration() {
         echo "Applying scheduler patch: $patch_file"
         if ! patch -p1 < <(wget -c "${sched_patch_base_url}${patch_file}" -O -); then
             echo "Failed to download and apply the patch: $patch_file"
-            whiptail --title "Patch Application Error" --msgbox "Failed to download and apply the patch: $patch_file" 10 60
+            whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
             return 1
         fi
     done
