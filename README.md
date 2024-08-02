@@ -1,5 +1,13 @@
 # CachyOS Kernel Builder for Debian-based Distributions
 
+<div align="center">
+  <img src="https://wiki.cachyos.org/_astro/logo.BL2wM24g_Z1ms4u6.webp" width="64" alt="CachyOS logo"></img>
+  <br/>
+  <h1 align="center">CachyOS</h1>
+  <p align="center">CachyOS provides enhanced kernels that offer improved performance and other benefits.</p>
+</div>
+
+
 This repository contains a script for building the Linux Kernel with various optimizations from CachyOS tailored to your system's CPU architecture. The script automates the configuration and optimization of the Linux Kernel build according to your hardware and preferences and creates distributable Debian packages with these modifications.
 
 # Features
