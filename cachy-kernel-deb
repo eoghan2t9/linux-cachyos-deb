@@ -185,7 +185,7 @@ configure_base_patch() {
     local cachy_base_status
     local none_status
 
-    cachy_base_status=$( [ "$_base_patch_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
+    cachy_base_status=$( [ "$_base_patch_selection" = "cachyos-base-all" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_base_patch_selection" = "none" ] && echo "ON" || echo "OFF" )
 
     _base_patch_selection=$(whiptail --title "Common Base Configuration" --radiolist \
