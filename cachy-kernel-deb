@@ -474,28 +474,34 @@ customize_kernel_extraname() {
     new_suffix=$(whiptail --inputbox "Enter suffix for kernel version:" 10 60 3>&1 1>&2 2>&3)
 
     if [[ -n $new_suffix ]]; then
-        echo "Updating EXTRAVERSION in Makefile..."
-        cd "$_kv_name" || return 1
+        if [[ -d "$_kv_name" ]]; then
+            echo "Updating EXTRAVERSION in Makefile..."
+            cd "$_kv_name" || { 
+                whiptail --title "Error" --msgbox "Failed to enter the kernel directory." 10 60
+                return 1
+            }
 
-        if grep -q '^EXTRAVERSION =' Makefile; then
-            echo "Current EXTRAVERSION: $(grep '^EXTRAVERSION =' Makefile)"
-            if grep -q '^EXTRAVERSION = *$' Makefile; then
-                sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = -${new_suffix}/" Makefile
+            if grep -q '^EXTRAVERSION =' Makefile; then
+                echo "Current EXTRAVERSION: $(grep '^EXTRAVERSION =' Makefile)"
+                if grep -q '^EXTRAVERSION = *$' Makefile; then
+                    sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = -${new_suffix}/" Makefile
+                else
+                    sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
+                fi
             else
-                sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
+                echo "EXTRAVERSION not found in Makefile. Adding it..."
+                echo "EXTRAVERSION = -${new_suffix}" >> Makefile
             fi
-        else
-            echo "EXTRAVERSION not found in Makefile. Adding it..."
-            echo "EXTRAVERSION = -${new_suffix}" >> Makefile
-        fi
 
-        echo "Updated EXTRAVERSION to: $(grep '^EXTRAVERSION =' Makefile)"
-        echo "Kernel version updated to $(make kernelversion)."
-        
-        cd -
+            echo "Updated EXTRAVERSION to: $(grep '^EXTRAVERSION =' Makefile)"
+            echo "Kernel version updated to $(make kernelversion)."
+            
+            cd -
+        else
+            whiptail --title "Error" --msgbox "Directory '$_kv_name' does not exist." 10 60
+        fi
     else
         echo "Operation canceled."
-        cd -
     fi
 }
 
