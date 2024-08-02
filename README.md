@@ -1,16 +1,6 @@
-# CachyOS Kernel Builder
+# CachyOS Kernel Builder for Debian-based Distributions
 
-This repository contains a script for building the CachyOS kernel with various optimizations tailored to your system's CPU architecture. The script automates the configuration and optimization of the kernel build according to your hardware and preferences.
-
-# Prerequisites
-
-Before running the script, ensure you have the following prerequisites installed:
-
-- `gcc`: The GNU Compiler Collection is necessary to detect the CPU architecture.
-- `whiptail`: For displaying dialog boxes in the script.
-- `curl`: To fetch the latest kernel version.
-
-You can install these dependencies using your distribution's package manager.
+This repository contains a script for building the Linux Kernel with various optimizations from CachyOS tailored to your system's CPU architecture. The script automates the configuration and optimization of the Linux Kernel build according to your hardware and preferences and creates distributable Debian packages with these modifications.
 
 # Features
 
@@ -34,15 +24,25 @@ To use the script, follow these steps:
 
 The script includes advanced configuration options for users who want to fine-tune their kernel:
 
-- **CachyOS Configuration**: Enable optimizations specific to CachyOS.
-- **CPU Scheduler**: Choose between schedulers like Cachy (SCHED_EXT), BORE or RT.
-- **LLVM LTO**: Select from Thin and Full LTO for better optimization.
-- **Tick Rate**: Configure the kernel tick rate according to your system's needs.
-- **NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
-- **Hugepages**: Enable Hugepages support or not.
-- **LRU**: Configure the Least Recently Used memory management mechanism.
-- **O3 Optimization**: Apply O3 optimization for performance improvement.
-- **Performance Governor**: Set the CPU frequency scaling governor to performance.
+- **Linux Kernel Configuration**: Choose from different configuration profiles for the Linux Kernel from CachyOS.
+- **CPU Scheduler**: Choose between schedulers like SCHED_EXT, BORE, ECHO and RT or combinations of them.
+- **Use LLVM LTO Optimizations**: Select from Thin and Full LTO for better optimization.
+- **Configurable Tick Rate and Tick Types**: Configure the kernel tick rate and types according to your system's needs.
+- **Configurable NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
+- **Configurable Hugepages**: Enable Hugepages support or not.
+- **Configurable LRU**: Configure the Least Recently Used memory management mechanism.
+- **Configurable Preemption Type**: Kernel preemption types generally control how the Linux kernel handles tasks and interrupts, affecting system responsiveness and latency.
+    - **No Forced Preemption**: This mode disables kernel preemption entirely, only allowing preemption at explicit preemption points.
+    - **Voluntary Kernel Preemption**: This mode allows the kernel to preempt tasks at certain well-defined preemption points. It offers a balance between low latency and high throughput.
+    - **Preemptible Kernel (Low-Latency Desktop)**: In this mode, the kernel can be preempted almost anywhere, allowing for very low latency and high responsiveness.
+    - **Real-Time Preemption**: This mode is designed for real-time applications where minimizing latency is critical.
+- **Miscellanous Optimizations**: Optimizations targeting aspects of system performance and can provide benefits depending on the workload and system configuration.
+    - **Use GCC -O3 Optimizations**: Aggressively optimizes compiled code for speed, possibly increasing binary size and compilation time.
+    - **Enable Performance Governor**: Sets the CPU to run at maximum frequency, boosting performance but increasing power consumption and heat.
+    - **Enable TCP BBR3**: A congestion control algorithm that aims to improve network throughput and reduce latency.
+    - **Enable VMA Optimizations**: Enhances memory management efficiency, potentially improving application performance.
+    - **Enablel DAMON**: Monitors data access patterns to optimize memory usage and improve performance.
+    - **Enablel NUMA**: Optimizes memory allocation and access patterns on NUMA systems to reduce latency.
 
 # Contributing
 

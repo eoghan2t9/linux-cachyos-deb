@@ -36,15 +36,17 @@ _kv_name=$(basename "$_kv_url" .tar.xz)
 
 _march="native"
 
-_cachyos_config="CACHYOS"
-_cpusched_selection="bore"
+_selected_kernel_config="linux-cachyos"
+
+_cpusched_selection="sched-ext"
+
 _llvm_lto_selection="none"
 _tick_rate="1000"
-_nr_cpus="32"
 _tick_type="nohz_full"
-_preempt="preempt"
-_lru_config="standard"
+_nr_cpus="32"
 _hugepage="always"
+_lru_config="standard"
+_preempt="preempt"
 
 _o3_optimization="yes"
 _performance_governor="yes"
@@ -52,7 +54,6 @@ _bbr3="yes"
 _vma="yes"
 _damon="yes"
 _numa="enable"
-_zfs="no"
 
 
 # -- Add colors for whiptail.
@@ -137,48 +138,59 @@ init_script() {
 }
 
 
-choose_kernel_option() {
+kernel_configuration() {
+    local options=(
+        "linux-cachyos" "Use CachyOS BPF+BORE configuration"
+        "linux-cachyos-bore" "Use CachyOS BORE configuration"
+        "linux-cachyos-echo" "Use CachyOS ECHO configuration"
+        "linux-cachyos-eevdf" "Use CachyOS EEVDF configuration"
+        "linux-cachyos-hardened" "Use CachyOS RT configuration"
+        "linux-cachyos-rt-bore" "Use CachyOS BORE+RT configuration"
+        "linux-cachyos-sched-ext" "Use CachyOS BPF+SCHED-EXT configuration"
+    )
 
-    whiptail --title "Kernel Version" --msgbox "The latest kernel version is $_kv_name" 8 78
-
-}
-
-
-configure_cachyos() {
-    local cachyos_status
     local selection
+    if ! selection=$(whiptail --title "Kernel Configuration" --menu "Select kernel configuration:" 20 78 ${#options[@]} / 2 \
+        "${options[@]}" 3>&1 1>&2 2>&3); then
+        echo "Kernel configuration canceled or failed."
+        _selected_kernel_config="none"
+        return 1
+    fi
 
-    cachyos_status=$( [ "$_cachyos_config" = "CACHYOS" ] && echo "ON" || echo "OFF" )
-    selection=$(whiptail --title "CachyOS Configuration" --checklist \
-        "Select optimizations to enable:" 20 78 1 \
-        "CachyOS" "" "$cachyos_status" 3>&1 1>&2 2>&3)
-
-    _cachyos_config=$( [[ "$selection" == *"CachyOS"* ]] && echo "CACHYOS" || echo "none" )
+    if [[ -n "$selection" ]]; then
+        _selected_kernel_config="$selection"
+    else
+        echo "No configuration selected, defaulting to none."
+        _selected_kernel_config="none"
+    fi
 }
 
 
 configure_cpusched() {
-    local cachyos_status
-    local bore_status
-    local rt_status
-    local rt_bore_status
-    local hardened_status
+    local sched_ext_status
+    local sched_echo_status
+    local sched_echo_cachy_status
+    local sched_bore_status
+    local sched_bore_cachy_status
+    local sched_bore_cachy_rt_status
     local none_status
 
-    cachyos_status=$( [ "$_cpusched_selection" = "cachyos" ] && echo "ON" || echo "OFF" )
-    bore_status=$( [ "$_cpusched_selection" = "bore" ] && echo "ON" || echo "OFF" )
-    rt_status=$( [ "$_cpusched_selection" = "rt" ] && echo "ON" || echo "OFF" )
-    rt_bore_status=$( [ "$_cpusched_selection" = "rt-bore" ] && echo "ON" || echo "OFF" )
-    hardened_status=$( [ "$_cpusched_selection" = "hardened" ] && echo "ON" || echo "OFF" )
+    sched_ext_status=$( [ "$_cpusched_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
+    sched_echo_status=$( [ "$_cpusched_selection" = "echo" ] && echo "ON" || echo "OFF" )
+    sched_echo_cachy_status=$( [ "$_cpusched_selection" = "echo-cachy" ] && echo "ON" || echo "OFF" )
+    sched_bore_status=$( [ "$_cpusched_selection" = "bore" ] && echo "ON" || echo "OFF" )
+    sched_bore_cachy_status=$( [ "$_cpusched_selection" = "bore-cachy" ] && echo "ON" || echo "OFF" )
+    sched_bore_cachy_rt_status=$( [ "$_cpusched_selection" = "bore-cachy-rt" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_cpusched_selection" = "none" ] && echo "ON" || echo "OFF" )
 
     _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
         "Choose CPU Scheduler (use space to select):" 20 60 7 \
-        "cachyos" "Enable CachyOS CPU scheduler" "$cachyos_status" \
-        "bore" "Enable Bore CPU scheduler" "$bore_status" \
-        "rt" "Enable RT CPU scheduler" "$rt_status" \
-        "rt-bore" "Enable RT-Bore CPU scheduler" "$rt_bore_status" \
-        "hardened" "Enable Hardened scheduler" "$hardened_status" \
+        "sched-ext" "Use SCHED-EXT scheduler" "$sched_ext_status" \
+        "echo" "Use ECHO scheduler" "$sched_echo_status" \
+        "echo-cachy" "Use ECHO+SCHED-EXT scheduler" "$sched_echo_cachy_status" \
+        "bore" "Use BORE CPU scheduler" "$sched_bore_status" \
+        "bore-cachy" "Use BORE+SCHED-EXT scheduler" "$sched_bore_cachy_status" \
+        "bore-cachy-rt" "Use BORE+SCHED-EXT+RT scheduler" "$sched_bore_cachy_rt_status" \
         "none" "Do not configure CPU scheduler" "$none_status" \
         3>&1 1>&2 2>&3)
 }
@@ -195,8 +207,8 @@ configure_llvm_lto() {
 
     _llvm_lto_selection=$(whiptail --title "LLVM LTO Configuration" --radiolist \
         "Choose LLVM LTO (use space to select):" 15 60 3 \
-        "thin" "Enable LLVM LTO Thin" "$thin_status" \
-        "full" "Enable LLVM LTO Full" "$full_status" \
+        "thin" "Use LLVM LTO Thin" "$thin_status" \
+        "full" "Use LLVM LTO Full" "$full_status" \
         "none" "Do not configure LLVM LTO" "$none_status" \
         3>&1 1>&2 2>&3)
 }
@@ -225,6 +237,24 @@ configure_tick_rate() {
         "600" "600 Hz" "$tick_rate_600" \
         "750" "750 Hz" "$tick_rate_750" \
         "1000" "1000 Hz" "$tick_rate_1000" \
+        3>&1 1>&2 2>&3)
+}
+
+
+configure_tick_type() {
+    local tick_type_periodic
+    local tick_type_nohz_full
+    local tick_type_nohz_idle
+
+    tick_type_periodic=$( [ "$_tick_type" = "periodic" ] && echo "ON" || echo "OFF" )
+    tick_type_nohz_full=$( [ "$_tick_type" = "nohz_full" ] && echo "ON" || echo "OFF" )
+    tick_type_nohz_idle=$( [ "$_tick_type" = "nohz_idle" ] && echo "ON" || echo "OFF" )
+
+    _tick_type=$(whiptail --title "Tick Type Configuration" --radiolist \
+        "Choose Tick Type (use space to select):" 15 60 3 \
+        "periodic" "Periodic tick" "$tick_type_periodic" \
+        "nohz_full" "Full dynticks" "$tick_type_nohz_full" \
+        "nohz_idle" "Idle dynticks" "$tick_type_nohz_idle" \
         3>&1 1>&2 2>&3)
 }
 
@@ -270,39 +300,39 @@ configure_lru() {
 }
 
 
-configure_tick_type() {
-    local tick_type_periodic
-    local tick_type_nohz_full
-    local tick_type_nohz_idle
-
-    tick_type_periodic=$( [ "$_tick_type" = "periodic" ] && echo "ON" || echo "OFF" )
-    tick_type_nohz_full=$( [ "$_tick_type" = "nohz_full" ] && echo "ON" || echo "OFF" )
-    tick_type_nohz_idle=$( [ "$_tick_type" = "nohz_idle" ] && echo "ON" || echo "OFF" )
-
-    _tick_type=$(whiptail --title "Tick Type Configuration" --radiolist \
-        "Choose Tick Type (use space to select):" 15 60 3 \
-        "periodic" "Periodic tick" "$tick_type_periodic" \
-        "nohz_full" "Full dynticks" "$tick_type_nohz_full" \
-        "nohz_idle" "Idle dynticks" "$tick_type_nohz_idle" \
-        3>&1 1>&2 2>&3)
-}
-
-
 configure_preempt_type() {
     local preempt_voluntary
     local preempt_preempt
     local preempt_none
+    local preempt_rt
 
     preempt_voluntary=$( [ "$_preempt" = "voluntary" ] && echo "ON" || echo "OFF" )
     preempt_preempt=$( [ "$_preempt" = "preempt" ] && echo "ON" || echo "OFF" )
     preempt_none=$( [ "$_preempt" = "none" ] && echo "ON" || echo "OFF" )
+    preempt_rt=$( [ "$_preempt" = "rt" ] && echo "ON" || echo "OFF" )
 
     _preempt=$(whiptail --title "Preempt Type Configuration" --radiolist \
-        "Choose Preempt Type (use space to select):" 15 60 3 \
+        "Choose Preempt Type (use space to select):" 15 60 4 \
         "voluntary" "Voluntary Preemption" "$preempt_voluntary" \
-        "preempt" "Preemptible Kernel" "$preempt_preempt" \
-        "none" "Do not configure Preempt Type" "$preempt_none" \
+        "preempt" "Preemptible Kernel (Low-Latency Desktop)" "$preempt_preempt" \
+        "none" "No Forced Preemption" "$preempt_none" \
+        "rt" "Real-Time Preemption" "$preempt_rt" \
         3>&1 1>&2 2>&3)
+
+    case "$_preempt" in
+        voluntary)
+            _preempt="voluntary"
+            ;;
+        preempt)
+            _preempt="preempt"
+            ;;
+        none)
+            _preempt="none"
+            ;;
+        rt)
+            _preempt="rt"
+            ;;
+    esac
 }
 
 
@@ -313,7 +343,6 @@ configure_system_optimizations() {
     local vma_status
     local damon_status
     local numa_status
-    local zfs_status
 
     o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
     performance_status=$([ "$_performance_governor" = "yes" ] && echo "ON" || echo "OFF")
@@ -321,18 +350,16 @@ configure_system_optimizations() {
     vma_status=$([ "$_vma" = "yes" ] && echo "ON" || echo "OFF")
     damon_status=$([ "$_damon" = "yes" ] && echo "ON" || echo "OFF")
     numa_status=$([ "$_numa" = "enable" ] && echo "ON" || echo "OFF")
-    zfs_status=$([ "$_zfs" = "yes" ] && echo "ON" || echo "OFF")
 
     local selection
     selection=$(whiptail --title "System Optimizations Configuration" --checklist \
         "Select optimizations to enable:" 20 78 8 \
-        "O3 Optimization" "" "$o3_status" \
-        "Performance Governor" "" "$performance_status" \
-        "TCP BBR3" "" "$bbr3_status" \
-        "VMA" "" "$vma_status" \
-        "DAMON" "" "$damon_status" \
-        "NUMA" "" "$numa_status" \
-        "ZFS" "" "$zfs_status" \
+        "GCC -O3 Optimizations" "" "$o3_status" \
+        "Enable Performance Governor" "" "$performance_status" \
+        "Enable TCP BBR3" "" "$bbr3_status" \
+        "Enable VMA Optimizations" "" "$vma_status" \
+        "Enable DAMON" "" "$damon_status" \
+        "Enable NUMA" "" "$numa_status" \
         3>&1 1>&2 2>&3)
 
     if [[ "$selection" == *"O3 Optimization"* ]]; then
@@ -344,122 +371,79 @@ configure_system_optimizations() {
     _vma=$( [[ "$selection" == *"VMA"* ]] && echo "yes" || echo "no" )
     _damon=$( [[ "$selection" == *"DAMON"* ]] && echo "yes" || echo "no" )
     _numa=$( [[ "$selection" == *"NUMA"* ]] && echo "enable" || echo "disable" )
-    _zfs=$( [[ "$selection" == *"ZFS"* ]] && echo "yes" || echo "no" )
 }
 
 
 apply_kernel_configuration() {
-    local _major _mid _patchsource
-    _major=$(echo "$_kv_name" | grep -oP '\d+' | head -n 1)
-    _mid=$(echo "$_kv_name" | grep -oP '\d+\.\K\d+')
+    echo "Starting kernel configuration process..."
 
-    if ! wget -c "$_kv_url" -O linux.tar.xz; then
-        echo "Failed to download the kernel."
+    if ! wget -c "$_kv_url" -O "linux.tar.xz"; then
+        echo "Failed to download the kernel archive."
         return 1
     fi
 
-    tar -xf linux.tar.xz
+    tar -xf "linux.tar.xz"
+    cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
 
-    cd "$_kv_name" || return 1
+    local _major
+    local _mid
 
-    wget -c "https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/linux-cachyos/config" -O .config
+    _major=$(echo "$_kv_name" | grep -oP '^\d+')
+    _mid=$(echo "$_kv_name" | grep -oP '(?<=^\d+\.)\d+')
 
-    _patchsource="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}"
-
-    local patches=()
-
-    if [[ "$_cachyos_config" == "CACHYOS" ]]; then
-        scripts/config -e CACHYOS
-        patches+=("${_patchsource}/all/0001-cachyos-base-all.patch")
+    if [[ -z "$_major" || -z "$_mid" ]]; then
+        echo "Error extracting kernel version numbers."
+        return 1
     fi
 
+    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/linux-cachyos"
+    local config_suffix="${_selected_kernel_config#linux-cachyos}"
+    config_suffix="${config_suffix/-//}"
+
+    if [ -z "$config_suffix" ]; then
+        config_suffix=""
+    else
+        config_suffix="-${config_suffix}"
+    fi
+
+    local config_url="${base_url}${config_suffix}/config"
+    if ! wget -c "$config_url" -O .config; then
+        echo "Failed to download the kernel configuration."
+        return 1
+    fi
+
+
+    # -- Apply scheduler patches.
+
+    local patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}"
+    local patch_file=""
     case "$_cpusched_selection" in
-        cachyos)
-            patches+=("${_patchsource}/sched/0001-sched-ext.patch") ;;
-        bore)
-            patches+=("${_patchsource}/sched/0001-bore-cachy.patch") ;;
-        rt)
-            patches+=("${_patchsource}/misc/0001-rt.patch" "linux-cachyos-rt.install") ;;
-        rt-bore)
-            patches+=("${_patchsource}/misc/0001-rt.patch" "${_patchsource}/sched/0001-bore-cachy-rt.patch" "linux-cachyos-rt.install") ;;
-        hardened)
-            patches+=("${_patchsource}/sched/0001-bore-cachy.patch" "${_patchsource}/misc/0001-hardened.patch") ;;
+        cachyos) patch_file="0001-sched-ext.patch" ;;
+        bore) patch_file="0001-bore-cachy.patch" ;;
+        rt) patch_file="0001-rt.patch" ;;
+        rt-bore) patch_file="0001-bore-cachy-rt.patch" ;;
+        hardened) patch_file="0001-hardened.patch" ;;
+        *) echo "Unknown CPU scheduler: $_cpusched_selection"; return 1 ;;
     esac
 
-    for patch in "${patches[@]}"; do
-        echo "Downloading and applying $patch"
-        wget -c "$patch"
-        patch -p1 < "$(basename "$patch")"
-    done
-
-    scripts/config -k --disable CONFIG_GENERIC_CPU
-    scripts/config -k --enable "CONFIG_${MARCH2}"
-
-    case "$_cpusched_selection" in
-        cachyos) scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT ;;
-        bore | hardened) scripts/config -e SCHED_BORE ;;
-        rt) scripts/config -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
-        rt-bore) scripts/config -e SCHED_BORE -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD ;;
-    esac
-
-    case "$_preempt" in
-        preempt) scripts/config -e PREEMPT_BUILD -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -e PREEMPT -e PREEMPT_COUNT -e PREEMPTION -e PREEMPT_DYNAMIC ;;
-        voluntary) scripts/config -e PREEMPT_BUILD -d PREEMPT_NONE -e PREEMPT_VOLUNTARY -d PREEMPT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_DYNAMIC ;;
-    esac
-
-    case "$_llvm_lto_selection" in
-        thin) scripts/config -e LTO_CLANG_THIN ;;
-        full) scripts/config -e LTO_CLANG_FULL ;;
-        none) scripts/config -d LTO_CLANG_THIN -d LTO_CLANG_FULL ;;
-    esac
-
-    case "$_tick_rate" in
-        100 | 250 | 500 | 600 | 750 | 1000)
-            scripts/config -d HZ_300 -e "HZ_${_tick_rate}" --set-val HZ "$_tick_rate" ;;
-        300)
-            scripts/config -e HZ_300 --set-val HZ 300 ;;
-    esac
-
-    case "$_tick_type" in
-        periodic) scripts/config -d NO_HZ_IDLE -d NO_HZ_FULL -d NO_HZ -d NO_HZ_COMMON -e HZ_PERIODIC ;;
-        idle) scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE -e NO_HZ -e NO_HZ_COMMON ;;
-        full) scripts/config -d HZ_PERIODIC -d NO_HZ_IDLE -d CONTEXT_TRACKING_FORCE -e NO_HZ_FULL_NODEF -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING ;;
-    esac
-
-    case "$_numa" in
-        enable) scripts/config -e NUMA ;;
-        disable) scripts/config -d NUMA ;;
-        none) ;;  # No action
-    esac
-
-    case "$_hugepage" in
-        always) scripts/config -d TRANSPARENT_HUGEPAGE_MADVISE -e TRANSPARENT_HUGEPAGE_ALWAYS ;;
-        madvise) scripts/config -d TRANSPARENT_HUGEPAGE_ALWAYS -e TRANSPARENT_HUGEPAGE_MADVISE ;;
-        no) ;;  # No action
-    esac
-
-    scripts/config --set-val NR_CPUS "$_nr_cpus"
-
-    case "$_lru_config" in
-        standard) scripts/config -e LRU_GEN -e LRU_GEN_ENABLED -d LRU_GEN_STATS ;;
-        stats) scripts/config -e LRU_GEN -e LRU_GEN_ENABLED -e LRU_GEN_STATS ;;
-        none) scripts/config -d LRU_GEN ;;
-    esac
-
-    if [[ "$_o3_optimization" == "yes" ]]; then
-        scripts/config -d CC_OPTIMIZE_FOR_PERFORMANCE -e CC_OPTIMIZE_FOR_PERFORMANCE_O3
+    if [[ -n "$patch_file" ]]; then
+        echo "Applying scheduler patch: $patch_file"
+        if ! patch -p1 < <(wget -c "${patch_base_url}/sched/$patch_file" -O -); then
+            echo "Failed to download and apply the patch."
+            return 1
+        fi
     fi
 
-    if [[ "$_performance_governor" == "yes" ]]; then
-        scripts/config -d CPU_FREQ_DEFAULT_GOV_SCHEDUTIL -e CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-    fi
+    scripts/config --disable CONFIG_GENERIC_CPU
+    scripts/config --enable CONFIG_"${_march^^}"
 
-    echo "Configurations applied."
-
+    echo "Kernel configuration successfully applied."
     cd -
 }
 
-customize_kernel_version() {
+
+
+customize_kernel_extraname() {
     local new_suffix
     new_suffix=$(whiptail --inputbox "Enter suffix for kernel version:" 10 60 3>&1 1>&2 2>&3)
 
@@ -499,15 +483,15 @@ show_options() {
     Kernel Version: $modified_kernel_version
 
     CPU Architecture: $_march
-    CachyOS Config: $_cachyos_config
+    Selected Config: $_selected_kernel_config
     CPU Scheduler: $_cpusched_selection
     LLVM LTO: $_llvm_lto_selection
     Tick Rate: $_tick_rate
-    NR_CPUS: $_nr_cpus
     Tick Type: $_tick_type
-    Preempt Type: $_preempt
-    LRU Config: $_lru_config
+    NR_CPUS: $_nr_cpus
     Hugepages: $_hugepage
+    LRU Config: $_lru_config
+    Preempt Type: $_preempt
 
     O3 Optimization: $_o3_optimization
     Performance Governor: $_performance_governor
@@ -515,7 +499,6 @@ show_options() {
     VMA: $_vma
     DAMON: $_damon
     NUMA: $_numa
-    ZFS: $_zfs
     " 30 78
 }
 
@@ -529,14 +512,14 @@ create_debian_packages() {
 
     find "$modules_build_dir" -type f -name '*.ko' -exec zstd -19 -f {} \;
 
-    echo "Kernel modules have been stripped and compressed."
+    echo "Kernel modules have been optimized."
 
     local kernel_version arch
     kernel_version=$(make kernelversion)
     arch=$(dpkg --print-architecture)
 
     local kernel_pkg_name="linux-image-cachyos-${kernel_version}"
-    local kernel_pkg_version="0.0.1+nitrux"
+    local kernel_pkg_version="0.0.1"
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
 
     package_kernel() {
@@ -632,56 +615,8 @@ EOF
         rm -rf "${headers_pkg_dir}"
     }
 
-#     package_zfs() {
-#         local zfs_pkg_dir="zfs-${kernel_version}"
-#         local control_file="${zfs_pkg_dir}/DEBIAN/control"
-#         mkdir -p "${zfs_pkg_dir}/DEBIAN"
-
-#         cat >"${control_file}" <<EOF
-# Package: zfs-${kernel_version}
-# Version: ${kernel_pkg_version}
-# Section: kernel
-# Priority: optional
-# Architecture: ${arch}
-# Maintainer: Uri Herrera <uri_herrera@nxos.org>
-# Description: ZFS for CachyOS compiled Linux Kernel ${kernel_version}
-# EOF
-
-#         install -m644 module/*.ko "${zfs_pkg_dir}/lib/modules/${kernel_version}/extra"
-#         find "${zfs_pkg_dir}" -name '*.ko' -exec zstd --rm -10 {} +
-
-#         fakeroot dpkg-deb --build "${zfs_pkg_dir}"
-
-#         rm -rf "${zfs_pkg_dir}"
-#     }
-
-    # if [[ "$_zfs" == "yes" ]]; then
-    #     local linux_dir
-    #     linux_dir=$(pwd)
-    #     git clone --depth 1 https://github.com/openzfs/zfs
-    #     cd zfs || exit
-
-    #     ./autogen.sh
-    #     ./configure --prefix=/usr \
-    #                 --sysconfdir=/etc \
-    #                 --sbindir=/usr/bin \
-    #                 --libdir=/usr/lib \
-    #                 --datadir=/usr/share \
-    #                 --includedir=/usr/include \
-    #                 --with-udevdir=/lib/udev \
-    #                 --libexecdir=/usr/lib/zfs \
-    #                 --with-config=kernel \
-    #                 --with-linux="${linux_dir}"
-    #     make -j"$(nproc)"
-    #     cd "${linux_dir}" || exit
-    # fi
-
     package_kernel
     package_headers
-
-    # if [[ "$_zfs" == "yes" ]]; then
-    #     package_zfs
-    # fi
 
     echo "Packages succesfully built."
 
@@ -712,8 +647,8 @@ check_deps
 
 # -- Ask for user confirmation.
 
-whiptail --title "CachyOS Kernel Configuration" --msgbox "This is a beta version of the CachyOS Kernel Configuration script. Use at your own risk." 8 78
-whiptail --title "Secure Boot Warning" --yesno "This script will disable secure boot. Do you want to continue?" 8 78
+whiptail --title "CachyOS Kernel Builder" --msgbox "This is a beta version of the CachyOS Kernel Builder script. Use at your own risk." 8 78
+whiptail --title "Secure Boot Warning" --yesno "The built kernel will not support Secure Boot. Do you want to continue?" 8 78
 
 
 # -- Run main function.
@@ -725,19 +660,18 @@ init_script
 
 while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option" 25 78 16 \
-        "0" "Choose Kernel Version ($_kv_name)" \
-        "1" "Configure CachyOS" \
+        "1" "Choose Kernel Configuration" \
         "2" "Configure CPU Scheduler" \
         "3" "Configure LLVM LTO" \
         "4" "Configure Tick Rate" \
-        "5" "Configure NR_CPUS" \
-        "6" "Configure Tick Type" \
-        "7" "Configure Preempt Type" \
+        "5" "Configure Tick Type" \
+        "6" "Configure NR_CPUS" \
+        "7" "Configure Hugepages" \
         "8" "Configure LRU" \
-        "9" "Configure Hugepages" \
+        "9" "Configure Preempt Type" \
         "10" "Configure System Optimizations" \
-        "11" "Download Kernel and Apply Configuration" \
-        "12" "Customize Kernel Version" \
+        "11" "Apply Kernel Configuration and Patches" \
+        "12" "Customize Kernel Name" \
         "13" "Show Current Configuration" \
         "14" "Create Debian Packages" \
         "15" "Exit" 3>&1 1>&2 2>&3)
@@ -748,19 +682,18 @@ while true; do
     fi
 
     case $CHOICE in
-        0) choose_kernel_option ;;
-        1) configure_cachyos ;;
+        1) kernel_configuration ;;
         2) configure_cpusched ;;
         3) configure_llvm_lto ;;
         4) configure_tick_rate ;;
-        5) configure_nr_cpus ;;
-        6) configure_tick_type ;;
-        7) configure_preempt_type ;;
+        5) configure_tick_type ;;
+        6) configure_nr_cpus ;;
+        7) configure_hugepages ;;
         8) configure_lru ;;
-        9) configure_hugepages ;;
+        9) configure_preempt_type ;;
         10) configure_system_optimizations ;;
         11) apply_kernel_configuration ;;
-        12) customize_kernel_version ;;
+        12) customize_kernel_extraname ;;
         13) show_options ;;
         14) create_debian_packages ;;
         15 | q) break ;;
