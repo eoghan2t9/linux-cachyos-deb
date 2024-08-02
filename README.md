@@ -66,4 +66,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 # Issues
 If you find problems with the contents of this repository please create an issue.
 
-©2024 Nitrux Latinoamericana S.C.
+©2024 Laio O. Seman, Nitrux Latinoamericana S.C.
