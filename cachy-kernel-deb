@@ -39,10 +39,10 @@ _march="native"
 _selected_kernel_config="linux-cachyos"
 
 _base_patch_selection="cachyos-base-all"
-_cpusched_selection="sched-ext"
+_cpusched_selection="cachyos-default"
 
 _llvm_lto_selection="none"
-_tick_rate="1000"
+_tick_rate="500"
 _tick_type="nohz_full"
 _nr_cpus="32"
 _hugepage="always"
@@ -51,7 +51,6 @@ _preempt="preempt"
 
 _o3_optimization="yes"
 _performance_governor="yes"
-_bbr3="yes"
 _vma="yes"
 _damon="yes"
 _numa="enable"
@@ -182,23 +181,23 @@ kernel_configuration() {
 }
 
 
-configure_base_patch() {
-    local cachy_base_status
+configure_base_optmizations() {
+    local cachyos_base_status
     local none_status
 
-    cachy_base_status=$( [ "$_base_patch_selection" = "cachyos-base-all" ] && echo "ON" || echo "OFF" )
+    cachyos_base_status=$( [ "$_base_patch_selection" = "cachyos-base-all" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_base_patch_selection" = "none" ] && echo "ON" || echo "OFF" )
 
-    _base_patch_selection=$(whiptail --title "Common Base Configuration" --radiolist \
-        "Choose base patch (use space to select):" 20 60 7 \
-        "cachyos-base-all" "Common CachyOS base patch" "$cachy_base_status" \
-        "none" "Do not configure base patch" "$none_status" \
+    _base_patch_selection=$(whiptail --title "Common Base Optimizations" --radiolist \
+        "Enable base optimizations (use space to select):" 20 60 7 \
+        "cachyos-base-all" "Use CachyOS optimizations" "$cachyos_base_status" \
+        "none" "Do not apply optimizations" "$none_status" \
         3>&1 1>&2 2>&3)
 }
 
 
 configure_cpusched() {
-    local sched_ext_status
+    local cachyos_default_status
     local sched_echo_status
     local sched_echo_cachy_status
     local sched_bore_status
@@ -206,6 +205,7 @@ configure_cpusched() {
     local sched_bore_cachy_rt_status
     local none_status
 
+    cachyos_default_status=$( [ "$_cpusched_selection" = "cachyos-default" ] && echo "ON" || echo "OFF" )
     sched_ext_status=$( [ "$_cpusched_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
     sched_echo_status=$( [ "$_cpusched_selection" = "echo" ] && echo "ON" || echo "OFF" )
     sched_echo_cachy_status=$( [ "$_cpusched_selection" = "echo-cachy" ] && echo "ON" || echo "OFF" )
@@ -216,6 +216,7 @@ configure_cpusched() {
 
     _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
         "Choose CPU Scheduler (use space to select):" 20 60 7 \
+        "cachyos-default" "Use BORE+SCHED-EXT scheduler" "$cachyos_default_status" \
         "sched-ext" "Use SCHED-EXT scheduler" "$sched_ext_status" \
         "echo" "Use ECHO scheduler" "$sched_echo_status" \
         "echo-cachy" "Use ECHO+SCHED-EXT scheduler" "$sched_echo_cachy_status" \
@@ -334,20 +335,20 @@ configure_lru() {
 configure_preempt_type() {
     local preempt_voluntary
     local preempt_preempt
-    local preempt_none
     local preempt_rt
+    local preempt_none
 
     preempt_voluntary=$( [ "$_preempt" = "voluntary" ] && echo "ON" || echo "OFF" )
     preempt_preempt=$( [ "$_preempt" = "preempt" ] && echo "ON" || echo "OFF" )
-    preempt_none=$( [ "$_preempt" = "none" ] && echo "ON" || echo "OFF" )
     preempt_rt=$( [ "$_preempt" = "rt" ] && echo "ON" || echo "OFF" )
+    preempt_none=$( [ "$_preempt" = "none" ] && echo "ON" || echo "OFF" )
 
     _preempt=$(whiptail --title "Preempt Type Configuration" --radiolist \
         "Choose Preempt Type (use space to select):" 15 60 4 \
         "voluntary" "Voluntary Preemption" "$preempt_voluntary" \
         "preempt" "Preemptible Kernel (Low-Latency Desktop)" "$preempt_preempt" \
-        "none" "No Forced Preemption" "$preempt_none" \
         "rt" "Real-Time Preemption" "$preempt_rt" \
+        "none" "No Forced Preemption" "$preempt_none" \
         3>&1 1>&2 2>&3)
 
     case "$_preempt" in
@@ -357,11 +358,11 @@ configure_preempt_type() {
         preempt)
             _preempt="preempt"
             ;;
-        none)
-            _preempt="none"
-            ;;
         rt)
             _preempt="rt"
+            ;;
+        none)
+            _preempt="none"
             ;;
     esac
 }
@@ -370,14 +371,12 @@ configure_preempt_type() {
 configure_system_optimizations() {
     local o3_status
     local performance_status
-    local bbr3_status
     local vma_status
     local damon_status
     local numa_status
 
     o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
     performance_status=$([ "$_performance_governor" = "yes" ] && echo "ON" || echo "OFF")
-    bbr3_status=$([ "$_bbr3" = "yes" ] && echo "ON" || echo "OFF")
     vma_status=$([ "$_vma" = "yes" ] && echo "ON" || echo "OFF")
     damon_status=$([ "$_damon" = "yes" ] && echo "ON" || echo "OFF")
     numa_status=$([ "$_numa" = "enable" ] && echo "ON" || echo "OFF")
@@ -387,7 +386,6 @@ configure_system_optimizations() {
         "Select optimizations to enable:" 20 78 8 \
         "GCC -O3 Optimizations" "" "$o3_status" \
         "Enable Performance Governor" "" "$performance_status" \
-        "Enable TCP BBR3" "" "$bbr3_status" \
         "Enable VMA Optimizations" "" "$vma_status" \
         "Enable DAMON" "" "$damon_status" \
         "Enable NUMA" "" "$numa_status" \
@@ -398,7 +396,6 @@ configure_system_optimizations() {
     fi
 
     _performance_governor=$( [[ "$selection" == *"Performance Governor"* ]] && echo "yes" || echo "no" )
-    _bbr3=$( [[ "$selection" == *"TCP BBR3"* ]] && echo "yes" || echo "no" )
     _vma=$( [[ "$selection" == *"VMA"* ]] && echo "yes" || echo "no" )
     _damon=$( [[ "$selection" == *"DAMON"* ]] && echo "yes" || echo "no" )
     _numa=$( [[ "$selection" == *"NUMA"* ]] && echo "enable" || echo "disable" )
@@ -476,6 +473,7 @@ apply_kernel_configuration() {
     local patch_files=()
 
     case "$_cpusched_selection" in
+        "cachyos-default") patch_files=("0001-sched-ext.patch") ;;
         "sched-ext") patch_files=("0001-sched-ext.patch") ;;
         "echo") patch_files=("0001-echo.patch") ;;
         "echo-cachy") patch_files=("0001-echo-cachy.patch") ;;
@@ -503,8 +501,126 @@ apply_kernel_configuration() {
         fi
     done
 
+
+    # -- Apply the user selections to the kernel configuration.
+
     scripts/config --disable CONFIG_GENERIC_CPU
     scripts/config --enable CONFIG_"${_march^^}"
+
+    case "$_cpusched_selection" in
+        cachyos-default | bore-cachy)
+            scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT
+            ;;
+        sched-ext)
+            scripts/config -e SCHED_CLASS_EXT
+            ;;
+        echo )
+            scripts/config -e CONFIG_ECHO_SCHED
+            ;;
+        echo-cachy )
+            scripts/config -e CONFIG_ECHO_SCHED -e SCHED_BORE -e SCHED_CLASS_EXT
+            ;;
+        bore )
+            scripts/config -e SCHED_BORE
+            ;;
+        bore-cachy-rt)
+            scripts/config -e SCHED_BORE -eSCHED_CLASS_EXT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD
+            ;;
+    esac
+
+    case "$_preempt" in
+        preempt)
+            scripts/config -e PREEMPT_BUILD -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -e PREEMPT -e PREEMPT_COUNT -e PREEMPTION -e PREEMPT_DYNAMIC
+            ;;
+        voluntary)
+            scripts/config -e PREEMPT_BUILD -d PREEMPT_NONE -e PREEMPT_VOLUNTARY -d PREEMPT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_DYNAMIC
+            ;;
+        server)
+            scripts/config -e PREEMPT_NONE_BUILD -e PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPTION -d PREEMPT_DYNAMIC
+            ;;
+        rt)
+            scripts/config -e PREEMPT_BUILD -e PREEMPT_RT -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_DYNAMIC
+            ;;
+        none)
+            ;;
+    esac
+
+    case "$_llvm_lto_selection" in
+        thin)
+            scripts/config -e LTO_CLANG_THIN
+            ;;
+        full)
+            scripts/config -e LTO_CLANG_FULL
+            ;;
+        none)
+            scripts/config -d LTO_CLANG_THIN -d LTO_CLANG_FULL
+            ;;
+    esac
+
+    case "$_tick_rate" in
+        100 | 250 | 500 | 600 | 750 | 1000)
+            scripts/config -d HZ_300 -e "HZ_${_tick_rate}" --set-val HZ "${_tick_rate}"
+            ;;
+        300)
+            scripts/config -e HZ_300 --set-val HZ 300
+            ;;
+    esac
+
+    case "$_tick_type" in
+        periodic)
+            scripts/config -d NO_HZ_IDLE -d NO_HZ_FULL -d NO_HZ -d NO_HZ_COMMON -e HZ_PERIODIC
+            ;;
+        idle)
+            scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE -e NO_HZ -e NO_HZ_COMMON
+            ;;
+        full)
+            scripts/config -d HZ_PERIODIC -d NO_HZ_IDLE -d CONTEXT_TRACKING_FORCE -e NO_HZ_FULL_NODEF -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING
+            ;;
+    esac
+
+    case "$_numa" in
+        enable)
+            scripts/config -e NUMA
+            ;;
+        disable)
+            scripts/config -d NUMA
+            ;;
+        none)
+            ;;
+    esac
+
+    case "$_hugepage" in
+        always)
+            scripts/config -d TRANSPARENT_HUGEPAGE_MADVISE -e TRANSPARENT_HUGEPAGE_ALWAYS
+            ;;
+        madvise)
+            scripts/config -d TRANSPARENT_HUGEPAGE_ALWAYS -e TRANSPARENT_HUGEPAGE_MADVISE
+            ;;
+        no)
+            ;;
+    esac
+
+    scripts/config --set-val NR_CPUS "$_nr_cpus"
+
+    case "$_lru_config" in
+        standard)
+            scripts/config -e LRU_GEN -e LRU_GEN_ENABLED -d LRU_GEN_STATS
+            ;;
+        stats)
+            scripts/config -e LRU_GEN -e LRU_GEN_ENABLED -e LRU_GEN_STATS
+            ;;
+        none)
+            scripts/config -d LRU_GEN
+            ;;
+    esac
+
+    if [[ "$_o3_optimization" == "yes" ]]; then
+        scripts/config -d CC_OPTIMIZE_FOR_PERFORMANCE -e CC_OPTIMIZE_FOR_PERFORMANCE_O3
+    fi
+
+    if [[ "$_performance_governor" == "yes" ]]; then
+        scripts/config -d CPU_FREQ_DEFAULT_GOV_SCHEDUTIL -e CPU_FREQ_DEFAULT_GOV_PERFORMANCE
+    fi
 
     echo "Kernel configuration successfully applied."
     cd -
@@ -561,7 +677,7 @@ show_options() {
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
     whiptail --title "Configuration Summary" --msgbox "
-    Kernel Version: $modified_kernel_version
+    Available Kernel to Patch: $modified_kernel_version
 
     CPU Architecture: $_march
     Selected Config: $_selected_kernel_config
@@ -577,7 +693,6 @@ show_options() {
 
     O3 Optimization: $_o3_optimization
     Performance Governor: $_performance_governor
-    TCP BBR3: $_bbr3
     VMA: $_vma
     DAMON: $_damon
     NUMA: $_numa
@@ -743,7 +858,7 @@ init_script
 while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 16 \
         "1" "Choose Kernel Configuration" \
-        "2" "Configure Base Patch" \
+        "2" "Configure Base Optimizations" \
         "3" "Configure CPU Scheduler" \
         "4" "Configure LLVM LTO" \
         "5" "Configure Tick Rate" \
@@ -766,7 +881,7 @@ while true; do
 
     case $CHOICE in
         1) kernel_configuration ;;
-        2) configure_base_patch ;;
+        2) configure_base_optmizations ;;
         3) configure_cpusched ;;
         4) configure_llvm_lto ;;
         5) configure_tick_rate ;;

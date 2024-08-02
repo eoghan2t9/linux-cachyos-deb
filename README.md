@@ -48,7 +48,6 @@ The script includes advanced configuration options for users who want to fine-tu
 - **Miscellanous Optimizations**: Optimizations targeting aspects of system performance and can provide benefits depending on the workload and system configuration.
     - **Use GCC -O3 Optimizations**: Aggressively optimizes compiled code for speed, possibly increasing binary size and compilation time.
     - **Enable Performance Governor**: Sets the CPU to run at maximum frequency, boosting performance but increasing power consumption and heat.
-    - **Enable TCP BBR3**: A congestion control algorithm that aims to improve network throughput and reduce latency.
     - **Enable VMA Optimizations**: Enhances memory management efficiency, potentially improving application performance.
     - **Enable DAMON**: Monitors data access patterns to optimize memory usage and improve performance.
     - **Enable NUMA**: Optimizes memory allocation and access patterns on NUMA systems to reduce latency.
