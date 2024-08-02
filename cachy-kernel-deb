@@ -718,9 +718,9 @@ create_debian_packages() {
 
     cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
 
-    # -- WARNING: Below is a very ugly "hack." For a reason, I don't understand, using make -j"$(nproc)" immediately results in the .config file reverting to the original, non-patched file.
-    # -- =======  Thus, to work around this problem, I figured that we need to move the file out of the source directory, then copy it back, and execute make again so that .config.old is created, and .config is reverted and terminate the process, but not right away, we have to wait.
-    # -- =======  Then delete the generated.config.old and .config, move the patched .config back to the directory, wait a bit, and compile the kernel.
+    # -- WARNING: Below is a very ugly "hack." For some reason, executing the command make -j"$(nproc)" immediately results in the .config file reverting to the original, non-patched file.
+    # -- =======  Thus, to work around this problem, I figured that we need to move the file out of the source directory after applying the patches, then copy it back, and execute make again so that .config.old is created, and .config is reverted, then terminate the process, but not right away, we have to wait.
+    # -- =======  Then delete the generated .config.old and .config, wait a bit, move the patched .config back to the source directory, wait a bit, and compile the kernel.
 
     cp ../.config .
 
