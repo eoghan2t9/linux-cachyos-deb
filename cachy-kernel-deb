@@ -559,11 +559,9 @@ apply_kernel_configuration() {
     esac
 
     case "$_tick_rate" in
-        100 | 250 | 500 | 600 | 750 | 1000)
-            scripts/config -d HZ_300 -e "HZ_${_tick_rate}" --set-val HZ "${_tick_rate}"
-            ;;
-        300)
-            scripts/config -e HZ_300 --set-val HZ 300
+        100 | 250 | 300 | 500 | 600 | 750 | 1000)
+            scripts/config -d HZ_100 -d HZ_250 -d HZ_500 -d HZ_600 -d HZ_750 -d HZ_1000
+            scripts/config -e "HZ_${_tick_rate}" --set-val HZ "${_tick_rate}"
             ;;
     esac
 
@@ -572,10 +570,10 @@ apply_kernel_configuration() {
             scripts/config -d NO_HZ_IDLE -d NO_HZ_FULL -d NO_HZ -d NO_HZ_COMMON -e HZ_PERIODIC
             ;;
         nohz_full)
-            scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE -d NO_HZ -e NO_HZ_COMMON
+            scripts/config -d HZ_PERIODIC -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING
             ;;
         nohz_idle)
-            scripts/config -d HZ_PERIODIC -d NO_HZ_IDLE -d CONTEXT_TRACKING_FORCE -e NO_HZ_FULL_NODEF -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING
+            scripts/config -d HZ_PERIODIC -e NO_HZ_IDLE -e NO_HZ -e NO_HZ_COMMON
             ;;
     esac
 
