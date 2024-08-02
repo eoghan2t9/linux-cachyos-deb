@@ -564,6 +564,7 @@ show_options() {
 
     CPU Architecture: $_march
     Selected Config: $_selected_kernel_config
+    Base Patch: $_base_patch_selection
     CPU Scheduler: $_cpusched_selection
     LLVM LTO: $_llvm_lto_selection
     Tick Rate: $_tick_rate
