@@ -151,6 +151,14 @@ kernel_configuration() {
 
     local num_items=$(( ${#options[@]} / 3 ))
 
+    local i=0
+    while [ $i -lt $num_items ]; do
+        if [[ "${options[i]}" == "$_selected_kernel_config" ]]; then
+            options[i+2]="ON"
+        fi
+        i=$((i + 3))
+    done
+
     local selection
     if ! selection=$(whiptail --title "Kernel Configuration" --checklist \
         "Select kernel configurations (use space to select/deselect):" 20 78 $num_items \
@@ -393,8 +401,8 @@ apply_kernel_configuration() {
     local _major
     local _mid
 
-    _major=$(echo "$_kv_name" | grep -oP '^\d+')
-    _mid=$(echo "$_kv_name" | grep -oP '(?<=^\d+\.)\d+')
+    _major=$(echo "$_kv_name" | grep -oP 'linux-\K\d+')
+    _mid=$(echo "$_kv_name" | grep -oP 'linux-\d+\.\K\d+')
 
     if [[ -z "$_major" || -z "$_mid" ]]; then
         echo "Error extracting kernel version numbers."
