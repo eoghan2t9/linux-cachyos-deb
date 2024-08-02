@@ -710,7 +710,9 @@ show_options() {
 
 
 create_debian_packages() {
-    cd "$_kv_name" || return 1
+    echo "Creating Debian package..."
+
+    cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
 
     make -j"$(nproc)"
 
