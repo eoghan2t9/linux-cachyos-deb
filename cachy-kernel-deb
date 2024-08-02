@@ -55,7 +55,7 @@ _vma="yes"
 _damon="yes"
 _numa="enable"
 
-_custom_extraversion="custom-kernel"
+_custom_extraversion="-custom-kernel"
 
 
 # -- Add colors for whiptail.
@@ -480,13 +480,13 @@ customize_kernel_extraname() {
         if grep -q '^EXTRAVERSION =' Makefile; then
             echo "Current EXTRAVERSION: $(grep '^EXTRAVERSION =' Makefile)"
             if grep -q '^EXTRAVERSION = *$' Makefile; then
-                sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = ${new_suffix}/" Makefile
+                sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = -${new_suffix}/" Makefile
             else
-                sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = ${new_suffix}/" Makefile
+                sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
             fi
         else
             echo "EXTRAVERSION not found in Makefile. Adding it..."
-            echo "EXTRAVERSION = ${new_suffix}" >> Makefile
+            echo "EXTRAVERSION = -${new_suffix}" >> Makefile
         fi
 
         echo "Updated EXTRAVERSION to: $(grep '^EXTRAVERSION =' Makefile)"
@@ -507,6 +507,8 @@ show_options() {
     if [[ -z $custom_extraversion ]]; then
         custom_extraversion="$_custom_extraversion"
     fi
+
+    custom_extraversion="${custom_extraversion#-}"
 
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 

@@ -46,6 +46,7 @@ The script includes advanced configuration options for users who want to fine-tu
     - **Voluntary Kernel Preemption**: This mode allows the kernel to preempt tasks at certain well-defined preemption points. It offers a balance between low latency and high throughput.
     - **Preemptible Kernel (Low-Latency Desktop)**: In this mode, the kernel can be preempted almost anywhere, allowing for very low latency and high responsiveness.
     - **Real-Time Preemption**: This mode is designed for real-time applications where minimizing latency is critical.
+- **Configurable Kernel Name**: Choose a name for your custom kernel.
 - **Miscellanous Optimizations**: Optimizations targeting aspects of system performance and can provide benefits depending on the workload and system configuration.
     - **Use GCC -O3 Optimizations**: Aggressively optimizes compiled code for speed, possibly increasing binary size and compilation time.
     - **Enable Performance Governor**: Sets the CPU to run at maximum frequency, boosting performance but increasing power consumption and heat.
