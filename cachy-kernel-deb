@@ -398,9 +398,14 @@ configure_system_optimizations() {
 apply_kernel_configuration() {
     echo "Starting kernel configuration process..."
 
-    if ! wget -c "$_kv_url" -O "linux.tar.xz"; then
-        echo "Failed to download the kernel archive."
-        return 1
+    if [ ! -f "linux.tar.xz" ]; then
+        echo "Downloading kernel archive..."
+        if ! wget -c "$_kv_url" -O "linux.tar.xz"; then
+            echo "Failed to download the kernel archive."
+            return 1
+        fi
+    else
+        echo "Kernel archive already exists. Skipping download."
     fi
 
     tar -xf "linux.tar.xz"
