@@ -456,6 +456,7 @@ apply_kernel_configuration() {
         echo "Applying scheduler patch: $patch_file"
         if ! patch -p1 < <(wget -c "${sched_patch_base_url}${patch_file}" -O -); then
             echo "Failed to download and apply the patch: $patch_file"
+            whiptail --title "Patch Application Error" --msgbox "Failed to download and apply the patch: $patch_file" 10 60
             return 1
         fi
     done
@@ -479,13 +480,13 @@ customize_kernel_extraname() {
         if grep -q '^EXTRAVERSION =' Makefile; then
             echo "Current EXTRAVERSION: $(grep '^EXTRAVERSION =' Makefile)"
             if grep -q '^EXTRAVERSION = *$' Makefile; then
-                sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = -${new_suffix}/" Makefile
+                sed -i "s/^EXTRAVERSION = *$/EXTRAVERSION = ${new_suffix}/" Makefile
             else
-                sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = -${new_suffix}/" Makefile
+                sed -i "s/^EXTRAVERSION = .*/EXTRAVERSION = ${new_suffix}/" Makefile
             fi
         else
             echo "EXTRAVERSION not found in Makefile. Adding it..."
-            echo "EXTRAVERSION = -${new_suffix}" >> Makefile
+            echo "EXTRAVERSION = ${new_suffix}" >> Makefile
         fi
 
         echo "Updated EXTRAVERSION to: $(grep '^EXTRAVERSION =' Makefile)"
