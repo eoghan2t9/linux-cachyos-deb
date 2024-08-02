@@ -160,8 +160,8 @@ kernel_configuration() {
     done
 
     local selection
-    if ! selection=$(whiptail --title "Kernel Configuration" --checklist \
-        "Select kernel configurations (use space to select/deselect):" 20 78 $num_items \
+    if ! selection=$(whiptail --title "Kernel Configuration" --radiolist \
+        "Select kernel configuration:" 20 78 $num_items \
         "${options[@]}" 3>&1 1>&2 2>&3); then
         echo "Kernel configuration canceled or failed."
         _selected_kernel_config="none"
