@@ -677,7 +677,7 @@ show_options() {
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
     whiptail --title "Configuration Summary" --msgbox "
-    Available Kernel to Patch: $modified_kernel_version
+    Available Kernel to Patch: $_kv_name
 
     CPU Architecture: $_march
     Selected Config: $_selected_kernel_config
@@ -696,6 +696,8 @@ show_options() {
     VMA: $_vma
     DAMON: $_damon
     NUMA: $_numa
+
+    Custom Kernel Name: $modified_kernel_version
     " 30 78
 }
 
@@ -844,8 +846,8 @@ check_deps
 
 # -- Ask for user confirmation.
 
-whiptail --title "CachyOS Kernel Builder" --msgbox "This is a development version of the CachyOS Kernel Builder. Use at your own risk." 8 78
-whiptail --title "Secure Boot Warning" --yesno "The built kernel will not support Secure Boot. Do you want to continue?" 8 78
+whiptail --title "CachyOS Kernel Builder" --msgbox "This is a development version of the CachyOS Kernel Builder. Use at your own risk!." 8 78
+whiptail --title "Secure Boot Warning" --yesno "CachyOS Kernel Builder will generate unsigned kernels incompatible with Secure Boot. Do you want to continue?" 8 78
 
 
 # -- Run main function.
