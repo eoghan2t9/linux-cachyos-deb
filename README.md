@@ -8,7 +8,9 @@
 </div>
 
 
-This repository contains a script for building the Linux Kernel with various optimizations from CachyOS tailored to your system's CPU architecture. The script automates the configuration and optimization of the Linux Kernel build according to your hardware and preferences and creates distributable Debian packages with these modifications.
+This repository contains a script for building the Linux Kernel with various optimizations from CachyOS tailored to your system's CPU architecture.
+
+The script automates the configuration and optimization of the Linux Kernel build according to your hardware and preferences and creates distributable Debian packages with these modifications.
 
 # Features
 
