@@ -707,10 +707,6 @@ show_options() {
 create_debian_packages() {
     cd "$_kv_name" || return 1
 
-    if [ -f .config.old ]; then
-     mv .config.old .config
-    fi
-
     make -j"$(nproc)"
 
     modules_build_dir=$(mktemp -d)
