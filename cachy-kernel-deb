@@ -501,13 +501,13 @@ customize_kernel_extraname() {
 
 show_options() {
     local custom_extraversion
-    custom_extraversion=$(grep -oP '^EXTRAVERSION = \K.*' "${_kv_name}/Makefile")
+    custom_extraversion=$(grep -oP '^EXTRAVERSION = \K.*' "${_kv_name}/Makefile" || true)
 
     if [[ -z $custom_extraversion ]]; then
         custom_extraversion="$_custom_extraversion"
     fi
 
-    local modified_kernel_version="${_kv_name}${custom_extraversion}"
+    local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
     whiptail --title "Configuration Summary" --msgbox "
     Kernel Version: $modified_kernel_version
