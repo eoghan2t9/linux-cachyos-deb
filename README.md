@@ -17,9 +17,7 @@ The script automates the configuration and optimization of the Linux Kernel buil
 The script provides the following:
 
 - Build a Linux Kernel using the custom configurations by CachyOS.
-- Configuration of CPU scheduler, LLVM LTO, tick rate, and more.
-- Support for multiple kernel configurations such as NUMA, NR_CPUS, Hugepages, and LRU.
-- Application of O3 optimization and performance governor settings.
+- Advanced configuration options including compilation optimizations.
 - Create distributable Debian packages.
 
 # Usage
