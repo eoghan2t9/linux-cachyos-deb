@@ -411,6 +411,7 @@ apply_kernel_configuration() {
     fi
 
     tar -xf "linux.tar.xz"
+
     cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
 
     local _major
@@ -524,7 +525,7 @@ apply_kernel_configuration() {
             scripts/config -e SCHED_BORE
             ;;
         bore-cachy-rt)
-            scripts/config -e SCHED_BORE -eSCHED_CLASS_EXT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD
+            scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD
             ;;
     esac
 
