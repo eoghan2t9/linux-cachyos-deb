@@ -38,6 +38,7 @@ _march="native"
 
 _selected_kernel_config="linux-cachyos"
 
+_base_patch_selection="cachyos-base-all"
 _cpusched_selection="sched-ext"
 
 _llvm_lto_selection="none"
@@ -740,7 +741,7 @@ init_script
 # -- Main menu.
 
 while true; do
-    CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option" 25 78 16 \
+    CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 16 \
         "1" "Choose Kernel Configuration" \
         "2" "Configure Base Patch" \
         "3" "Configure CPU Scheduler" \
