@@ -530,7 +530,7 @@ create_debian_packages() {
     arch=$(dpkg --print-architecture)
 
     local kernel_pkg_name="linux-image-cachyos-${kernel_version}"
-    local kernel_pkg_version="0.0.1"
+    kernel_pkg_version=$(date +%Y.%m.%d-%H.%M)
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
 
     package_kernel() {
