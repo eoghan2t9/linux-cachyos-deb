@@ -55,6 +55,8 @@ _vma="yes"
 _damon="yes"
 _numa="enable"
 
+_custom_extraversion="custom-kernel"
+
 
 # -- Add colors for whiptail.
 
@@ -500,6 +502,11 @@ customize_kernel_extraname() {
 show_options() {
     local custom_extraversion
     custom_extraversion=$(grep -oP '^EXTRAVERSION = \K.*' "${_kv_name}/Makefile")
+
+    if [[ -z $custom_extraversion ]]; then
+        custom_extraversion="$_custom_extraversion"
+    fi
+
     local modified_kernel_version="${_kv_name}${custom_extraversion}"
 
     whiptail --title "Configuration Summary" --msgbox "
