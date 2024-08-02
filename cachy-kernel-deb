@@ -181,6 +181,21 @@ kernel_configuration() {
 }
 
 
+configure_base_patch() {
+    local cachy_base_status
+    local none_status
+
+    cachy_base_status=$( [ "$_base_patch_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
+    none_status=$( [ "$_base_patch_selection" = "none" ] && echo "ON" || echo "OFF" )
+
+    _base_patch_selection=$(whiptail --title "Common Base Configuration" --radiolist \
+        "Choose base patch (use space to select):" 20 60 7 \
+        "cachyos-base-all" "Common CachyOS base patch" "$cachy_base_status" \
+        "none" "Do not configure base patch" "$none_status" \
+        3>&1 1>&2 2>&3)
+}
+
+
 configure_cpusched() {
     local sched_ext_status
     local sched_echo_status
@@ -425,6 +440,32 @@ apply_kernel_configuration() {
         echo "Failed to download the kernel configuration."
         return 1
     fi
+
+
+    # -- Apply common CachyOS patch.
+
+    local all_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
+
+    case "$_base_patch_selection" in
+        "cachyos-base-all") patch_files=("0001-cachyos-base-all.patch") ;;
+        "none")
+            echo "No base selected for patching."
+            return 0
+            ;;
+        *)
+            echo "Unknown base patch: $_base_patch_selection"
+            return 1
+            ;;
+    esac
+
+    for patch_file in "${patch_files[@]}"; do
+        echo "Applying scheduler patch: $patch_file"
+        if ! patch -p1 < <(wget -c "${all_patch_base_url}${patch_file}" -O -); then
+            echo "Failed to download and apply the patch: $patch_file"
+            whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
+            return 1
+        fi
+    done
 
 
     # -- Apply scheduler patches.
@@ -700,20 +741,21 @@ init_script
 while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option" 25 78 16 \
         "1" "Choose Kernel Configuration" \
-        "2" "Configure CPU Scheduler" \
-        "3" "Configure LLVM LTO" \
-        "4" "Configure Tick Rate" \
-        "5" "Configure Tick Type" \
-        "6" "Configure NR_CPUS" \
-        "7" "Configure Hugepages" \
-        "8" "Configure LRU" \
-        "9" "Configure Preempt Type" \
-        "10" "Configure System Optimizations" \
-        "11" "Apply Kernel Configuration and Patches" \
-        "12" "Customize Kernel Name" \
-        "13" "Show Current Configuration" \
-        "14" "Create Debian Packages" \
-        "15" "Exit" 3>&1 1>&2 2>&3)
+        "2" "Configure Base Patch" \
+        "3" "Configure CPU Scheduler" \
+        "4" "Configure LLVM LTO" \
+        "5" "Configure Tick Rate" \
+        "6" "Configure Tick Type" \
+        "7" "Configure NR_CPUS" \
+        "8" "Configure Hugepages" \
+        "9" "Configure LRU" \
+        "10" "Configure Preempt Type" \
+        "11" "Configure System Optimizations" \
+        "12" "Apply Kernel Configuration and Patches" \
+        "13" "Customize Kernel Name" \
+        "14" "Show Current Configuration" \
+        "15" "Create Debian Packages" \
+        "16" "Exit" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
     if [[ $exitstatus -ne 0 ]]; then
@@ -722,20 +764,21 @@ while true; do
 
     case $CHOICE in
         1) kernel_configuration ;;
-        2) configure_cpusched ;;
-        3) configure_llvm_lto ;;
-        4) configure_tick_rate ;;
-        5) configure_tick_type ;;
-        6) configure_nr_cpus ;;
-        7) configure_hugepages ;;
-        8) configure_lru ;;
-        9) configure_preempt_type ;;
-        10) configure_system_optimizations ;;
-        11) apply_kernel_configuration ;;
-        12) customize_kernel_extraname ;;
-        13) show_options ;;
-        14) create_debian_packages ;;
-        15 | q) break ;;
+        2) configure_base_patch ;;
+        3) configure_cpusched ;;
+        4) configure_llvm_lto ;;
+        5) configure_tick_rate ;;
+        6) configure_tick_type ;;
+        7) configure_nr_cpus ;;
+        8) configure_hugepages ;;
+        9) configure_lru ;;
+        10) configure_preempt_type ;;
+        11) configure_system_optimizations ;;
+        12) apply_kernel_configuration ;;
+        13) customize_kernel_extraname ;;
+        14) show_options ;;
+        15) create_debian_packages ;;
+        16 | q) break ;;
         *) echo "Invalid Option" ;;
     esac
 done
