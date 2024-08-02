@@ -739,6 +739,8 @@ create_debian_packages() {
 
     make -j"$(nproc)" 
 
+    # -- End of ugly "hack."
+
     modules_build_dir=$(mktemp -d)
     make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH="$modules_build_dir"
 
