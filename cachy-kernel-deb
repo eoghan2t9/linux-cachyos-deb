@@ -130,13 +130,6 @@ init_script() {
     if ! whiptail --title "CPU Architecture" --yesno "Detected CPU (MARCH) : ${MARCH2}\nIs this correct?" 10 60; then
         MARCH2=$(whiptail --title "CPU Architecture" --inputbox "Enter CPU type (MARCH):" 10 60 "$MARCH2" 3>&1 1>&2 2>&3)
     fi
-
-    echo "----------------------------------"
-    echo "| APPLYING AUTO-CPU-OPTIMIZATION |"
-    echo "----------------------------------"
-    echo "[*] DETECTED CPU (MARCH) : ${MARCH2}"
-
-    _march=$MARCH2
 }
 
 
@@ -505,9 +498,6 @@ apply_kernel_configuration() {
 
     # -- Apply the user selections to the kernel configuration.
 
-    scripts/config --disable CONFIG_GENERIC_CPU
-    scripts/config --enable CONFIG_"${_march^^}"
-
     case "$_cpusched_selection" in
         cachyos-default | bore-cachy)
             scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT
@@ -621,6 +611,16 @@ apply_kernel_configuration() {
         scripts/config -d CPU_FREQ_DEFAULT_GOV_SCHEDUTIL -e CPU_FREQ_DEFAULT_GOV_PERFORMANCE
     fi
 
+    echo "----------------------------------"
+    echo "| APPLYING AUTO-CPU-OPTIMIZATION |"
+    echo "----------------------------------"
+    echo "[*] DETECTED CPU (MARCH) : ${MARCH2}"
+
+    _march=$MARCH2
+
+    scripts/config --disable CONFIG_GENERIC_CPU
+    scripts/config --enable CONFIG_"${_march^^}"
+
     echo "Kernel configuration successfully applied."
     cd -
 }
@@ -703,6 +703,10 @@ show_options() {
 
 create_debian_packages() {
     cd "$_kv_name" || return 1
+
+    if [ -f .config.old ]; then
+     mv .config.old .config
+    fi
 
     make -j"$(nproc)"
 
