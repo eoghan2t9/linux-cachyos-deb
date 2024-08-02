@@ -439,7 +439,10 @@ apply_kernel_configuration() {
     local cachyos_optimizations_patch="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
 
     case "$_base_patch_selection" in
-        "cachyos-base-all") patch_files=("0001-cachyos-base-all.patch") ;;
+        "cachyos-base-all")
+            patch_files=("0001-cachyos-base-all.patch")
+            scripts/config -e CACHYOS
+            ;;
         "none")
             echo "No base selected for patching."
             return 0
