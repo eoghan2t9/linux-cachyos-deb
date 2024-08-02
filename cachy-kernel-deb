@@ -396,7 +396,7 @@ apply_kernel_configuration() {
         return 1
     fi
 
-    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/linux-cachyos"
+    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/"
     local config_suffix="${_selected_kernel_config#linux-cachyos}"
     config_suffix="${config_suffix/-//}"
 
@@ -415,24 +415,36 @@ apply_kernel_configuration() {
 
     # -- Apply scheduler patches.
 
-    local patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}"
-    local patch_file=""
+    local sched_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/sched/"
+    local misc_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/misc/"
+    local patch_files=()
+
     case "$_cpusched_selection" in
-        cachyos) patch_file="0001-sched-ext.patch" ;;
-        bore) patch_file="0001-bore-cachy.patch" ;;
-        rt) patch_file="0001-rt.patch" ;;
-        rt-bore) patch_file="0001-bore-cachy-rt.patch" ;;
-        hardened) patch_file="0001-hardened.patch" ;;
-        *) echo "Unknown CPU scheduler: $_cpusched_selection"; return 1 ;;
+        "sched-ext") patch_files=("0001-sched-ext.patch") ;;
+        "echo") patch_files=("0001-echo.patch") ;;
+        "echo-cachy") patch_files=("0001-echo-cachy.patch") ;;
+        "bore") patch_files=("0001-bore.patch") ;;
+        "bore-cachy") patch_files=("0001-bore-cachy.patch") ;;
+        "bore-cachy-rt")
+            patch_files=("0001-bore-cachy-rt.patch" "${misc_patch_base_url}0001-rt.patch")
+            ;;
+        "none")
+            echo "No CPU scheduler selected for patching."
+            return 0
+            ;;
+        *)
+            echo "Unknown CPU scheduler: $_cpusched_selection"
+            return 1
+            ;;
     esac
 
-    if [[ -n "$patch_file" ]]; then
+    for patch_file in "${patch_files[@]}"; do
         echo "Applying scheduler patch: $patch_file"
-        if ! patch -p1 < <(wget -c "${patch_base_url}/sched/$patch_file" -O -); then
-            echo "Failed to download and apply the patch."
+        if ! patch -p1 < <(wget -c "${sched_patch_base_url}${patch_file}" -O -); then
+            echo "Failed to download and apply the patch: $patch_file"
             return 1
         fi
-    fi
+    done
 
     scripts/config --disable CONFIG_GENERIC_CPU
     scripts/config --enable CONFIG_"${_march^^}"
@@ -440,7 +452,6 @@ apply_kernel_configuration() {
     echo "Kernel configuration successfully applied."
     cd -
 }
-
 
 
 customize_kernel_extraname() {
