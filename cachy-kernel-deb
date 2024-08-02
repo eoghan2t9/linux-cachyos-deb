@@ -400,7 +400,6 @@ apply_kernel_configuration() {
 
     local _major
     local _mid
-
     _major=$(echo "$_kv_name" | grep -oP 'linux-\K\d+')
     _mid=$(echo "$_kv_name" | grep -oP 'linux-\d+\.\K\d+')
 
@@ -409,17 +408,17 @@ apply_kernel_configuration() {
         return 1
     fi
 
-    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/"
-    local config_suffix="${_selected_kernel_config#linux-cachyos}"
-    config_suffix="${config_suffix/-//}"
+    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/master"
+    local config_suffix
+    config_suffix="/${_selected_kernel_config#linux-cachyos}"
 
-    if [ -z "$config_suffix" ]; then
-        config_suffix=""
-    else
-        config_suffix="-${config_suffix}"
+    if [[ "$_selected_kernel_config" == "linux-cachyos" ]]; then
+        config_suffix="/linux-cachyos"
     fi
 
     local config_url="${base_url}${config_suffix}/config"
+    echo "Config URL: $config_url"
+
     if ! wget -c "$config_url" -O .config; then
         echo "Failed to download the kernel configuration."
         return 1
