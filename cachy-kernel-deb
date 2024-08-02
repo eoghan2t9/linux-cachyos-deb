@@ -629,6 +629,10 @@ apply_kernel_configuration() {
     scripts/config --disable CONFIG_GENERIC_CPU
     scripts/config --enable CONFIG_"${_march^^}"
 
+    _move_config_up="$(pwd)/.config"
+
+    mv "$_move_config_up" ../
+
     echo "Kernel configuration successfully applied."
     cd -
 }
@@ -714,7 +718,26 @@ create_debian_packages() {
 
     cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
 
-    make -j"$(nproc)"
+    # -- WARNING: Below is a very ugly "hack." For a reason, I don't understand, using make -j"$(nproc)"  immediately results in the .config file reverting to the original, non-patched file.
+    # -- =======  Thus, to work around this problem, I figured that we need to move the file out of the source directory, then copy it back, and execute make again so that .config.old is created, and .config is reverted and terminate the process, but not right away, we have to wait.
+    # -- =======  Then delete the .config.old and .config, move the patched .config back to the directory, wait a bit, and compile the kernel.
+
+    cp ../.config .
+
+    make & _make_pid=$!
+    sleep 3
+    kill $_make_pid 2>/dev/null
+
+    [ -e "$(pwd)/.config" ] && rm "$(pwd)/.config"
+    [ -e "$(pwd)/.config.old" ] && rm "$(pwd)/.config.old"
+
+    sleep 3
+
+    mv ../.config .
+
+    sleep 3
+
+    make -j"$(nproc)" 
 
     modules_build_dir=$(mktemp -d)
     make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH="$modules_build_dir"
