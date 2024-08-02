@@ -572,7 +572,7 @@ apply_kernel_configuration() {
             scripts/config -d NO_HZ_IDLE -d NO_HZ_FULL -d NO_HZ -d NO_HZ_COMMON -e HZ_PERIODIC
             ;;
         nohz_full)
-            scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE -e NO_HZ -e NO_HZ_COMMON
+            scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE -d NO_HZ -e NO_HZ_COMMON
             ;;
         nohz_idle)
             scripts/config -d HZ_PERIODIC -d NO_HZ_IDLE -d CONTEXT_TRACKING_FORCE -e NO_HZ_FULL_NODEF -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING
@@ -707,6 +707,7 @@ create_debian_packages() {
     cd "$_kv_name" || return 1
 
     make -j"$(nproc)"
+
     modules_build_dir=$(mktemp -d)
     make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH="$modules_build_dir"
 
