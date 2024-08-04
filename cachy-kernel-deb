@@ -40,16 +40,17 @@ _selected_kernel_config="linux-cachyos"
 
 _base_patch_selection="cachyos-base-all"
 
-_amd_pstate="enable"
-_bbr3="enable"
-_block_device_optimization="yes"
-_cachyos_fixes="yes"
-_crypto_device_optimization="yes"
-_intel_pstate="enable"
-_ksm="yes"
-_ntsync="enable"
-_perf_per_core_optimization="yes"
-_zstd_optimization="yes"
+amd_pstate_status="OFF"
+bbr3_status="OFF"
+block_device_optimization_status="OFF"
+cachyos_fixes_status="OFF"
+crypto_device_optimization_status="OFF"
+intel_pstate_status="OFF"
+ksm_status="OFF"
+ntsync_status="OFF"
+perf_per_core_optimization_status="OFF"
+zstd_optimization_status="OFF"
+none_status="OFF"
 
 _cpusched_selection="cachyos-default"
 
@@ -782,8 +783,8 @@ show_options() {
 
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
-    whiptail --title "Configuration Summary" --msgbox "
-    Available Kernel to Patch: $_kv_name
+    whiptail --title "Configuration Summary" --scrolltext --msgbox "
+    Kernel (latest from kernel.org): $_kv_name
 
     CPU Architecture: $_march
     Selected Config: $_selected_kernel_config
