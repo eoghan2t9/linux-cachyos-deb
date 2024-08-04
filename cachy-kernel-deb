@@ -787,7 +787,21 @@ show_options() {
 
     CPU Architecture: $_march
     Selected Config: $_selected_kernel_config
+
     Base Patch: $_base_patch_selection
+
+    Additional Optimizations:
+    AMD P-state: $amd_pstate_status
+    TCP BBR3: $bbr3_status
+    Block Devices: $block_device_optimization_status
+    CachyOS Fixes: $cachyos_fixes_status
+    Crypto Devices: $crypto_device_optimization_status
+    Intel P-state: $intel_pstate_status
+    KSM: $ksm_status
+    NTSYNC: $ntsync_status
+    Perf-Per-Core: $perf_per_core_optimization_status
+    Zstd: $zstd_optimization_status
+
     CPU Scheduler: $_cpusched_selection
     LLVM LTO: $_llvm_lto_selection
     Tick Rate: $_tick_rate
@@ -988,7 +1002,7 @@ init_script
 # -- Main menu.
 
 while true; do
-    CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 16 \
+    CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 17 \
         "1" "Choose Kernel Configuration" \
         "2" "Configure Base Optimizations" \
         "3" "Configure Additional Optimizations" \
