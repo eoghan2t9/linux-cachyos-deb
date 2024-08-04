@@ -199,7 +199,7 @@ configure_base_optmizations() {
     cachyos_base_status=$( [ "$_base_patch_selection" = "cachyos-base-all" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_base_patch_selection" = "none" ] && echo "ON" || echo "OFF" )
 
-    _base_patch_selection=$(whiptail --title "Common Base Optimizations" --radiolist \
+    _base_patch_selection=$(whiptail --title "Common CachyOS Optimizations" --radiolist \
         "Enable base optimizations (use space to select):" 20 60 7 \
         "cachyos-base-all" "Use CachyOS optimizations" "$cachyos_base_status" \
         "none" "Do not apply optimizations" "$none_status" \
@@ -207,7 +207,7 @@ configure_base_optmizations() {
 }
 
 
-select_additional_optimizations() {
+configure_additional_optimizations() {
     local amd_pstate_status
     local bbr3_status
     local block_device_optimization_status
@@ -218,37 +218,34 @@ select_additional_optimizations() {
     local ntsync_status
     local perf_per_core_optimization_status
     local zstd_optimization_status
+    local none_status
 
-    amd_pstate_status=$([ "$_amd_pstate" = "yes" ] && echo "ON" || echo "OFF")
-    bbr3_status=$([ "$_bbr3" = "yes" ] && echo "ON" || echo "OFF")
-    block_device_optimization_status=$([ "$_block_device_optimization" = "yes" ] && echo "ON" || echo "OFF")
-    cachyos_fixes_status=$([ "$_cachyos_fixes" = "yes" ] && echo "ON" || echo "OFF")
-    crypto_device_optimization_status=$([ "$_crypto_device_optimization" = "enable" ] && echo "ON" || echo "OFF")
-    intel_pstate_status=$([ "$_intel_pstate" = "yes" ] && echo "ON" || echo "OFF")
-    ksm_status=$([ "$_ksm" = "yes" ] && echo "ON" || echo "OFF")
-    ntsync_status=$([ "$_ntsync" = "enable" ] && echo "ON" || echo "OFF")
-    perf_per_core_optimization_status=$([ "$_perf_per_core_optimization" = "yes" ] && echo "ON" || echo "OFF")
-    zstd_optimization_status=$([ "$_zstd_optimization" = "yes" ] && echo "ON" || echo "OFF")
+    amd_pstate_status=$( [[ "$_additional_patch_selection" == *"amd-pstate"* ]] && echo "ON" || echo "OFF" )
+    bbr3_status=$( [[ "$_additional_patch_selection" == *"bbr3"* ]] && echo "ON" || echo "OFF" )
+    block_device_optimization_status=$( [[ "$_additional_patch_selection" == *"block"* ]] && echo "ON" || echo "OFF" )
+    cachyos_fixes_status=$( [[ "$_additional_patch_selection" == *"cachy"* ]] && echo "ON" || echo "OFF" )
+    crypto_device_optimization_status=$( [[ "$_additional_patch_selection" == *"crypto"* ]] && echo "ON" || echo "OFF" )
+    intel_pstate_status=$( [[ "$_additional_patch_selection" == *"intel-pstate"* ]] && echo "ON" || echo "OFF" )
+    ksm_status=$( [[ "$_additional_patch_selection" == *"ksm"* ]] && echo "ON" || echo "OFF" )
+    ntsync_status=$( [[ "$_additional_patch_selection" == *"ntsync"* ]] && echo "ON" || echo "OFF" )
+    perf_per_core_optimization_status=$( [[ "$_additional_patch_selection" == *"perf-per-core"* ]] && echo "ON" || echo "OFF" )
+    zstd_optimization_status=$( [[ "$_additional_patch_selection" == *"zstd"* ]] && echo "ON" || echo "OFF" )
+    none_status=$( [[ "$_additional_patch_selection" == *"none"* ]] && echo "ON" || echo "OFF" )
 
-    local selection
-    if ! selection=$(whiptail --title "Additional System Optimizations Configuration" --checklist \
-        "Select additional optimizations to enable:" 20 78 8 \
-        "Enable AMD P-state Optimizations" "" "$amd_pstate_status" \
-        "Enable TCP BBR3" "" "$bbr3_status" \
-        "Enable Block Devices Optimizations" "" "$block_device_optimization_status" \
-        "Enable Additional CachyOS Fixes" "" "$cachyos_fixes_status" \
-        "Enable Crypto Devices Optimizations" "" "$crypto_device_optimization_status" \
-        "Enable Intel P-state Optimizations" "" "$intel_pstate_status" \
-        "Enable KSM Optimizations" "" "$ksm_status" \
-        "Enable NTSYNC Driver" "" "$ntsync_status" \
-        "Enable Perf-Per-Core Optimizations" "" "$perf_per_core_optimization_status" \
-        "Enable Zstd Optimizations" "" "$zstd_optimization_status" \
-        3>&1 1>&2 2>&3); then
-        echo "User cancelled the selection."
-        return 1
-    fi
-
-    echo "$selection"
+    _additional_patch_selection=$(whiptail --title "Additional CachyOS Optimizations" --checklist \
+    "Enable additional optimizations (use space to select):" 20 60 11 \
+    "amd-pstate" "Enable AMD P-state Optimizations" "$amd_pstate_status" \
+    "bbr3" "Enable TCP BBR3" "$bbr3_status" \
+    "block" "Enable Block Devices Optimizations" "$block_device_optimization_status" \
+    "cachy" "Enable Additional CachyOS Fixes" "$cachyos_fixes_status" \
+    "crypto" "Enable Crypto Devices Optimizations" "$crypto_device_optimization_status" \
+    "intel-pstate" "Enable Intel P-state Optimizations" "$intel_pstate_status" \
+    "ksm" "Enable KSM Optimizations" "$ksm_status" \
+    "ntsync" "Enable NTSYNC Driver" "$ntsync_status" \
+    "perf-per-core" "Enable Perf-Per-Core Optimizations" "$perf_per_core_optimization_status" \
+    "zstd" "Enable Zstd Optimizations" "$zstd_optimization_status" \
+    "none" "Do not apply optimizations" "$none_status" \
+    3>&1 1>&2 2>&3)
 }
 
 
@@ -533,22 +530,28 @@ apply_kernel_configuration() {
     local additional_optimizations_patch="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/"
     local additional_patch_files=()
 
-    case "$_additional_patch_selection" in
-        *"Enable AMD P-state Optimizations"*) additional_patch_files+=("0001-amd-pstate.patch") ;;
-        *"Enable TCP BBR3"*) additional_patch_files+=("0002-bbr3.patch") ;;
-        *"Enable Block Devices Optimizations"*) additional_patch_files+=("0003-block.patch") ;;
-        *"Enable Additional CachyOS Fixes"*) additional_patch_files+=("0004-cachy.patch") ;;
-        *"Enable Crypto Devices Optimizations"*) additional_patch_files+=("0005-crypto.patch") ;;
-        *"Enable Intel P-state Optimizations"*) additional_patch_files+=("0007-intel-pstate.patch") ;;
-        *"Enable KSM Optimizations"*) additional_patch_files+=("0008-ksm.patch") ;;
-        *"Enable NTSYNC Driver"*) additional_patch_files+=("0009-ntsync.patch") ;;
-        *"Enable Perf-Per-Core Optimizations"*) additional_patch_files+=("0010-perf-per-core.patch") ;;
-        *"Enable Zstd Optimizations"*) additional_patch_files+=("0012-zstd.patch") ;;
-        *)
-            echo "Unknown additional patch selection: $_additional_patch_selection"
-            return 1
-            ;;
-    esac
+    for selection in $_additional_patch_selection; do
+        case "$selection" in
+            "\"amd-pstate\"") additional_patch_files+=("0001-amd-pstate.patch") ;;
+            "\"bbr3\"") additional_patch_files+=("0002-bbr3.patch") ;;
+            "\"block\"") additional_patch_files+=("0003-block.patch") ;;
+            "\"cachy\"") additional_patch_files+=("0004-cachy.patch") ;;
+            "\"crypto\"") additional_patch_files+=("0005-crypto.patch") ;;
+            "\"intel-pstate\"") additional_patch_files+=("0007-intel-pstate.patch") ;;
+            "\"ksm\"") additional_patch_files+=("0008-ksm.patch") ;;
+            "\"ntsync\"") additional_patch_files+=("0009-ntsync.patch") ;;
+            "\"perf-per-core\"") additional_patch_files+=("0010-perf-per-core.patch") ;;
+            "\"zstd\"") additional_patch_files+=("0012-zstd.patch") ;;
+            "\"none\"")
+                echo "No additional patches selected."
+                return 0
+                ;;
+            *)
+                echo "Unknown additional patch selection: $selection"
+                return 1
+                ;;
+        esac
+    done
 
     for patch_file in "${additional_patch_files[@]}"; do
         echo "Applying additional patch: $patch_file"
@@ -988,20 +991,21 @@ while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 16 \
         "1" "Choose Kernel Configuration" \
         "2" "Configure Base Optimizations" \
-        "3" "Configure CPU Scheduler" \
-        "4" "Configure LLVM LTO" \
-        "5" "Configure Tick Rate" \
-        "6" "Configure Tick Type" \
-        "7" "Configure NR_CPUS" \
-        "8" "Configure Hugepages" \
-        "9" "Configure LRU" \
-        "10" "Configure Preempt Type" \
-        "11" "Configure System Optimizations" \
-        "12" "Apply Kernel Configuration and Patches" \
-        "13" "Customize Kernel Name" \
-        "14" "Show Current Configuration" \
-        "15" "Create Debian Packages" \
-        "16" "Exit" 3>&1 1>&2 2>&3)
+        "3" "Configure Additional Optimizations" \
+        "4" "Configure CPU Scheduler" \
+        "5" "Configure LLVM LTO" \
+        "6" "Configure Tick Rate" \
+        "7" "Configure Tick Type" \
+        "8" "Configure NR_CPUS" \
+        "9" "Configure Hugepages" \
+        "10" "Configure LRU" \
+        "11" "Configure Preempt Type" \
+        "12" "Configure System Optimizations" \
+        "13" "Apply Kernel Configuration and Patches" \
+        "14" "Customize Kernel Name" \
+        "15" "Show Current Configuration" \
+        "16" "Create Debian Packages" \
+        "17" "Exit" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
     if [[ $exitstatus -ne 0 ]]; then
@@ -1010,21 +1014,22 @@ while true; do
 
     case $CHOICE in
         1) kernel_configuration ;;
-        2) configure_base_optmizations ;;
-        3) configure_cpusched ;;
-        4) configure_llvm_lto ;;
-        5) configure_tick_rate ;;
-        6) configure_tick_type ;;
-        7) configure_nr_cpus ;;
-        8) configure_hugepages ;;
-        9) configure_lru ;;
-        10) configure_preempt_type ;;
-        11) configure_system_optimizations ;;
-        12) apply_kernel_configuration ;;
-        13) customize_kernel_extraname ;;
-        14) show_options ;;
-        15) create_debian_packages ;;
-        16 | q) break ;;
+        2) configure_base_optimizations ;;
+        3) configure_additional_optimizations ;;
+        4) configure_cpusched ;;
+        5) configure_llvm_lto ;;
+        6) configure_tick_rate ;;
+        7) configure_tick_type ;;
+        8) configure_nr_cpus ;;
+        9) configure_hugepages ;;
+        10) configure_lru ;;
+        11) configure_preempt_type ;;
+        12) configure_system_optimizations ;;
+        13) apply_kernel_configuration ;;
+        14) customize_kernel_extraname ;;
+        15) show_options ;;
+        16) create_debian_packages ;;
+        17) break ;;
         *) echo "Invalid Option" ;;
     esac
 done

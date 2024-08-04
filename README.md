@@ -34,6 +34,7 @@ The script includes advanced configuration options for users who want to fine-tu
 
 - **Linux Kernel Configuration**: Choose from different configuration profiles for the Linux Kernel from CachyOS.
 - **CPU Scheduler**: Choose between schedulers like SCHED_EXT, BORE, ECHO and RT or combinations of them.
+- **Addiitonal Fixes and Optimizations**: AMD and Intel P-state, optimizations for block and crypto devices, BBR3 support, and others.
 - **Configure LLVM's Link Time Optimization (LTO)**: Select from Thin and Full LTO for better optimization.
 - **Configurable Tick Rate and Tick Types**: Configure the kernel tick rate and types according to your system's needs.
 - **Configurable NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
