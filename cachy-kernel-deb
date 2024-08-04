@@ -791,7 +791,6 @@ show_options() {
 
     Base Patch: $_base_patch_selection
 
-    Additional Optimizations:
     AMD P-state: $amd_pstate_status
     TCP BBR3: $bbr3_status
     Block Devices: $block_device_optimization_status
