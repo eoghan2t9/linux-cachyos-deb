@@ -39,18 +39,36 @@ _march="native"
 _selected_kernel_config="linux-cachyos"
 
 _base_patch_selection="cachyos-base-all"
+
+_amd_pstate="enable"
+_bbr3="enable"
+_block_device_optimization="yes"
+_cachyos_fixes="yes"
+_crypto_device_optimization="yes"
+_intel_pstate="enable"
+_ksm="yes"
+_ntsync="enable"
+_perf_per_core_optimization="yes"
+_zstd_optimization="yes"
+
 _cpusched_selection="cachyos-default"
 
 _llvm_lto_selection="none"
+
 _tick_rate="500"
+
 _tick_type="nohz_full"
+
 _nr_cpus="32"
+
 _hugepage="always"
+
 _lru_config="standard"
+
 _preempt="preempt"
 
 _o3_optimization="yes"
-_performance_governor="yes"
+_performance_governor="enable"
 _vma="yes"
 _damon="yes"
 _numa="enable"
@@ -186,6 +204,51 @@ configure_base_optmizations() {
         "cachyos-base-all" "Use CachyOS optimizations" "$cachyos_base_status" \
         "none" "Do not apply optimizations" "$none_status" \
         3>&1 1>&2 2>&3)
+}
+
+
+select_additional_optimizations() {
+    local amd_pstate_status
+    local bbr3_status
+    local block_device_optimization_status
+    local cachyos_fixes_status
+    local crypto_device_optimization_status
+    local intel_pstate_status
+    local ksm_status
+    local ntsync_status
+    local perf_per_core_optimization_status
+    local zstd_optimization_status
+
+    amd_pstate_status=$([ "$_amd_pstate" = "yes" ] && echo "ON" || echo "OFF")
+    bbr3_status=$([ "$_bbr3" = "yes" ] && echo "ON" || echo "OFF")
+    block_device_optimization_status=$([ "$_block_device_optimization" = "yes" ] && echo "ON" || echo "OFF")
+    cachyos_fixes_status=$([ "$_cachyos_fixes" = "yes" ] && echo "ON" || echo "OFF")
+    crypto_device_optimization_status=$([ "$_crypto_device_optimization" = "enable" ] && echo "ON" || echo "OFF")
+    intel_pstate_status=$([ "$_intel_pstate" = "yes" ] && echo "ON" || echo "OFF")
+    ksm_status=$([ "$_ksm" = "yes" ] && echo "ON" || echo "OFF")
+    ntsync_status=$([ "$_ntsync" = "enable" ] && echo "ON" || echo "OFF")
+    perf_per_core_optimization_status=$([ "$_perf_per_core_optimization" = "yes" ] && echo "ON" || echo "OFF")
+    zstd_optimization_status=$([ "$_zstd_optimization" = "yes" ] && echo "ON" || echo "OFF")
+
+    local selection
+    if ! selection=$(whiptail --title "Additional System Optimizations Configuration" --checklist \
+        "Select additional optimizations to enable:" 20 78 8 \
+        "Enable AMD P-state Optimizations" "" "$amd_pstate_status" \
+        "Enable TCP BBR3" "" "$bbr3_status" \
+        "Enable Block Devices Optimizations" "" "$block_device_optimization_status" \
+        "Enable Additional CachyOS Fixes" "" "$cachyos_fixes_status" \
+        "Enable Crypto Devices Optimizations" "" "$crypto_device_optimization_status" \
+        "Enable Intel P-state Optimizations" "" "$intel_pstate_status" \
+        "Enable KSM Optimizations" "" "$ksm_status" \
+        "Enable NTSYNC Driver" "" "$ntsync_status" \
+        "Enable Perf-Per-Core Optimizations" "" "$perf_per_core_optimization_status" \
+        "Enable Zstd Optimizations" "" "$zstd_optimization_status" \
+        3>&1 1>&2 2>&3); then
+        echo "User cancelled the selection."
+        return 1
+    fi
+
+    echo "$selection"
 }
 
 
@@ -363,13 +426,13 @@ configure_preempt_type() {
 
 configure_system_optimizations() {
     local o3_status
-    local performance_status
+    local performance_governor_status
     local vma_status
     local damon_status
     local numa_status
 
     o3_status=$([ "$_o3_optimization" = "yes" ] && echo "ON" || echo "OFF")
-    performance_status=$([ "$_performance_governor" = "yes" ] && echo "ON" || echo "OFF")
+    performance_governor_status=$([ "$_performance_governor" = "enable" ] && echo "ON" || echo "OFF")
     vma_status=$([ "$_vma" = "yes" ] && echo "ON" || echo "OFF")
     damon_status=$([ "$_damon" = "yes" ] && echo "ON" || echo "OFF")
     numa_status=$([ "$_numa" = "enable" ] && echo "ON" || echo "OFF")
@@ -378,20 +441,17 @@ configure_system_optimizations() {
     selection=$(whiptail --title "System Optimizations Configuration" --checklist \
         "Select optimizations to enable:" 20 78 8 \
         "GCC -O3 Optimizations" "" "$o3_status" \
-        "Enable Performance Governor" "" "$performance_status" \
+        "Enable Performance Governor" "" "$performance_governor_status" \
         "Enable VMA Optimizations" "" "$vma_status" \
         "Enable DAMON" "" "$damon_status" \
         "Enable NUMA" "" "$numa_status" \
         3>&1 1>&2 2>&3)
 
-    if [[ "$selection" == *"O3 Optimization"* ]]; then
-        _o3_optimization="yes"
-    fi
-
-    _performance_governor=$( [[ "$selection" == *"Performance Governor"* ]] && echo "yes" || echo "no" )
-    _vma=$( [[ "$selection" == *"VMA"* ]] && echo "yes" || echo "no" )
-    _damon=$( [[ "$selection" == *"DAMON"* ]] && echo "yes" || echo "no" )
-    _numa=$( [[ "$selection" == *"NUMA"* ]] && echo "enable" || echo "disable" )
+    _o3_optimization=$( echo "$selection" | grep -q "GCC -O3 Optimizations" && echo "yes" || echo "no" )
+    _performance_governor=$( echo "$selection" | grep -q "Enable Performance Governor" && echo "enable" || echo "no" )
+    _vma=$( echo "$selection" | grep -q "Enable VMA Optimizations" && echo "yes" || echo "no" )
+    _damon=$( echo "$selection" | grep -q "Enable DAMON" && echo "yes" || echo "no" )
+    _numa=$( echo "$selection" | grep -q "Enable NUMA" && echo "enable" || echo "disable" )
 }
 
 
@@ -449,7 +509,7 @@ apply_kernel_configuration() {
             scripts/config -e CONFIG_CACHY
             ;;
         "none")
-            echo "No base selected for patching."
+            echo "No base patch selected."
             return 0
             ;;
         *)
@@ -461,6 +521,38 @@ apply_kernel_configuration() {
     for patch_file in "${patch_files[@]}"; do
         echo "Applying scheduler patch: $patch_file"
         if ! patch -p1 < <(wget -c "${cachyos_optimizations_patch}${patch_file}" -O -); then
+            echo "Failed to download and apply the patch: $patch_file"
+            whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
+            return 1
+        fi
+    done
+
+
+    # -- Apply additional CachyOS patches.
+
+    local additional_optimizations_patch="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/"
+    local additional_patch_files=()
+
+    case "$_additional_patch_selection" in
+        *"Enable AMD P-state Optimizations"*) additional_patch_files+=("0001-amd-pstate.patch") ;;
+        *"Enable TCP BBR3"*) additional_patch_files+=("0002-bbr3.patch") ;;
+        *"Enable Block Devices Optimizations"*) additional_patch_files+=("0003-block.patch") ;;
+        *"Enable Additional CachyOS Fixes"*) additional_patch_files+=("0004-cachy.patch") ;;
+        *"Enable Crypto Devices Optimizations"*) additional_patch_files+=("0005-crypto.patch") ;;
+        *"Enable Intel P-state Optimizations"*) additional_patch_files+=("0007-intel-pstate.patch") ;;
+        *"Enable KSM Optimizations"*) additional_patch_files+=("0008-ksm.patch") ;;
+        *"Enable NTSYNC Driver"*) additional_patch_files+=("0009-ntsync.patch") ;;
+        *"Enable Perf-Per-Core Optimizations"*) additional_patch_files+=("0010-perf-per-core.patch") ;;
+        *"Enable Zstd Optimizations"*) additional_patch_files+=("0012-zstd.patch") ;;
+        *)
+            echo "Unknown additional patch selection: $_additional_patch_selection"
+            return 1
+            ;;
+    esac
+
+    for patch_file in "${additional_patch_files[@]}"; do
+        echo "Applying additional patch: $patch_file"
+        if ! patch -p1 < <(wget -c "${additional_optimizations_patch}${patch_file}" -O -); then
             echo "Failed to download and apply the patch: $patch_file"
             whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
             return 1
@@ -615,7 +707,7 @@ apply_kernel_configuration() {
         scripts/config -d CC_OPTIMIZE_FOR_PERFORMANCE -e CC_OPTIMIZE_FOR_PERFORMANCE_O3
     fi
 
-    if [[ "$_performance_governor" == "yes" ]]; then
+    if [[ "$_performance_governor" == "enable" ]]; then
         scripts/config -d CPU_FREQ_DEFAULT_GOV_SCHEDUTIL -e CPU_FREQ_DEFAULT_GOV_PERFORMANCE
     fi
 
