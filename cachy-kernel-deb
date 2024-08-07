@@ -209,18 +209,6 @@ configure_base_optmizations() {
 
 
 configure_additional_optimizations() {
-    local amd_pstate_status
-    local bbr3_status
-    local block_device_optimization_status
-    local cachyos_fixes_status
-    local crypto_device_optimization_status
-    local intel_pstate_status
-    local ksm_status
-    local ntsync_status
-    local perf_per_core_optimization_status
-    local zstd_optimization_status
-    local none_status
-
     : "${_additional_patch_selection:=}"
 
     amd_pstate_status=$( [[ "$_additional_patch_selection" == *"amd-pstate"* ]] && echo "ON" || echo "OFF" )
@@ -249,6 +237,24 @@ configure_additional_optimizations() {
     "zstd" "Enable Zstd Optimizations" "$zstd_optimization_status" \
     "none" "Do not apply optimizations" "$none_status" \
     3>&1 1>&2 2>&3)
+
+    if [[ "$_additional_patch_selection" == *"none"* ]]; then
+        _additional_patch_selection="none"
+    else
+        _additional_patch_selection=$(echo "$_additional_patch_selection" | tr -d '"')
+    fi
+
+    amd_pstate_status=$( [[ "$_additional_patch_selection" == *"amd-pstate"* ]] && echo "ON" || echo "OFF" )
+    bbr3_status=$( [[ "$_additional_patch_selection" == *"bbr3"* ]] && echo "ON" || echo "OFF" )
+    block_device_optimization_status=$( [[ "$_additional_patch_selection" == *"block"* ]] && echo "ON" || echo "OFF" )
+    cachyos_fixes_status=$( [[ "$_additional_patch_selection" == *"cachy"* ]] && echo "ON" || echo "OFF" )
+    crypto_device_optimization_status=$( [[ "$_additional_patch_selection" == *"crypto"* ]] && echo "ON" || echo "OFF" )
+    intel_pstate_status=$( [[ "$_additional_patch_selection" == *"intel-pstate"* ]] && echo "ON" || echo "OFF" )
+    ksm_status=$( [[ "$_additional_patch_selection" == *"ksm"* ]] && echo "ON" || echo "OFF" )
+    ntsync_status=$( [[ "$_additional_patch_selection" == *"ntsync"* ]] && echo "ON" || echo "OFF" )
+    perf_per_core_optimization_status=$( [[ "$_additional_patch_selection" == *"perf-per-core"* ]] && echo "ON" || echo "OFF" )
+    zstd_optimization_status=$( [[ "$_additional_patch_selection" == *"zstd"* ]] && echo "ON" || echo "OFF" )
+    none_status=$( [[ "$_additional_patch_selection" == *"none"* ]] && echo "ON" || echo "OFF" )
 }
 
 
@@ -533,35 +539,43 @@ apply_kernel_configuration() {
     local additional_optimizations_patch="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/"
     local additional_patch_files=()
 
-    for selection in $_additional_patch_selection; do
+    IFS=' ' read -r -a selections <<< "$_additional_patch_selection"
+
+    for selection in "${selections[@]}"; do
         case "$selection" in
-            "\"amd-pstate\"") additional_patch_files+=("0001-amd-pstate.patch") ;;
-            "\"bbr3\"") additional_patch_files+=("0002-bbr3.patch") ;;
-            "\"block\"") additional_patch_files+=("0003-block.patch") ;;
-            "\"cachy\"") additional_patch_files+=("0004-cachy.patch") ;;
-            "\"crypto\"") additional_patch_files+=("0005-crypto.patch") ;;
-            "\"intel-pstate\"") additional_patch_files+=("0007-intel-pstate.patch") ;;
-            "\"ksm\"") additional_patch_files+=("0008-ksm.patch") ;;
-            "\"ntsync\"") additional_patch_files+=("0009-ntsync.patch") ;;
-            "\"perf-per-core\"") additional_patch_files+=("0010-perf-per-core.patch") ;;
-            "\"zstd\"") additional_patch_files+=("0012-zstd.patch") ;;
-            "\"none\"")
+            amd-pstate) additional_patch_files+=("0001-amd-pstate.patch") ;;
+            bbr3) additional_patch_files+=("0002-bbr3.patch") ;;
+            block) additional_patch_files+=("0003-block.patch") ;;
+            cachy) additional_patch_files+=("0004-cachy.patch") ;;
+            crypto) additional_patch_files+=("0005-crypto.patch") ;;
+            intel-pstate) additional_patch_files+=("0007-intel-pstate.patch") ;;
+            ksm) additional_patch_files+=("0008-ksm.patch") ;;
+            ntsync) additional_patch_files+=("0009-ntsync.patch") ;;
+            perf-per-core) additional_patch_files+=("0010-perf-per-core.patch") ;;
+            zstd) additional_patch_files+=("0012-zstd.patch") ;;
+            none)
                 echo "No additional patches selected."
                 return 0
                 ;;
             *)
                 echo "Unknown additional patch selection: $selection"
-                return 1
+                continue
                 ;;
         esac
     done
 
     for patch_file in "${additional_patch_files[@]}"; do
         echo "Applying additional patch: $patch_file"
-        if ! patch -p1 < <(wget -c "${additional_optimizations_patch}${patch_file}" -O -); then
-            echo "Failed to download and apply the patch: $patch_file"
-            whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
-            return 1
+        patch_content=$(wget -qO- "${additional_optimizations_patch}${patch_file}")
+
+        if ! echo "$patch_content" | patch -p1 --verbose; then
+            if echo "$patch_content" | patch -R -p1 --dry-run | grep -q "Reversed (or previously applied) patch detected"; then
+                echo "Patch $patch_file was already applied. Skipping."
+            else
+                echo "Failed to apply the patch: $patch_file. Continuing with the next patch."
+                whiptail --title "Patch Application Error" --msgbox "Failed to apply the patch: $patch_file. Continuing with the next patch." 10 60
+                continue
+            fi
         fi
     done
 
