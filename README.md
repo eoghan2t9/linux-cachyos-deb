@@ -34,7 +34,6 @@ The script includes advanced configuration options for users who want to fine-tu
 
 - **Linux Kernel Configuration**: Choose from different configuration profiles for the Linux Kernel from CachyOS.
 - **CPU Scheduler**: Choose between schedulers like SCHED_EXT, BORE, ECHO and RT or combinations of them.
-- **Addiitonal Fixes and Optimizations**: AMD and Intel P-state, optimizations for block and crypto devices, BBR3 support, and others.
 - **Configure LLVM's Link Time Optimization (LTO)**: Select from Thin and Full LTO for better optimization.
 - **Configurable Tick Rate and Tick Types**: Configure the kernel tick rate and types according to your system's needs.
 - **Configurable NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
@@ -46,7 +45,7 @@ The script includes advanced configuration options for users who want to fine-tu
     - **Preemptible Kernel (Low-Latency Desktop)**: In this mode, the kernel can be preempted almost anywhere, allowing for very low latency and high responsiveness.
     - **Real-Time Preemption**: This mode is designed for real-time applications where minimizing latency is critical.
 - **Configurable Kernel Name**: Choose a name for your custom kernel.
-- **Miscellanous Optimizations**: Optimizations targeting aspects of system performance and can provide benefits depending on the workload and system configuration.
+- **Additional Optimizations**: Optimizations targeting aspects of system performance and can provide benefits depending on the workload and system configuration.
     - **Use GCC -O3 Optimizations**: Aggressively optimizes compiled code for speed, possibly increasing binary size and compilation time.
     - **Enable Performance Governor**: Sets the CPU to run at maximum frequency, boosting performance but increasing power consumption and heat.
     - **Enable VMA Optimizations**: Enhances memory management efficiency, potentially improving application performance.

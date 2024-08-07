@@ -40,23 +40,11 @@ _selected_kernel_config="linux-cachyos"
 
 _base_patch_selection="cachyos-base-all"
 
-amd_pstate_status="OFF"
-bbr3_status="OFF"
-block_device_optimization_status="OFF"
-cachyos_fixes_status="OFF"
-crypto_device_optimization_status="OFF"
-intel_pstate_status="OFF"
-ksm_status="OFF"
-ntsync_status="OFF"
-perf_per_core_optimization_status="OFF"
-zstd_optimization_status="OFF"
-none_status="OFF"
-
 _cpusched_selection="cachyos-default"
 
 _llvm_lto_selection="none"
 
-_tick_rate="500"
+_tick_rate="1000"
 
 _tick_type="nohz_full"
 
@@ -200,61 +188,11 @@ configure_base_optmizations() {
     cachyos_base_status=$( [ "$_base_patch_selection" = "cachyos-base-all" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_base_patch_selection" = "none" ] && echo "ON" || echo "OFF" )
 
-    _base_patch_selection=$(whiptail --title "Common CachyOS Optimizations" --radiolist \
-        "Enable base optimizations (use space to select):" 20 60 7 \
+    _base_patch_selection=$(whiptail --title "Base CachyOS Optimizations" --radiolist \
+        "Enable CachyOS base optimizations (use space to select):" 20 60 7 \
         "cachyos-base-all" "Use CachyOS optimizations" "$cachyos_base_status" \
         "none" "Do not apply optimizations" "$none_status" \
         3>&1 1>&2 2>&3)
-}
-
-
-configure_additional_optimizations() {
-    : "${_additional_patch_selection:=}"
-
-    amd_pstate_status=$( [[ "$_additional_patch_selection" == *"amd-pstate"* ]] && echo "ON" || echo "OFF" )
-    bbr3_status=$( [[ "$_additional_patch_selection" == *"bbr3"* ]] && echo "ON" || echo "OFF" )
-    block_device_optimization_status=$( [[ "$_additional_patch_selection" == *"block"* ]] && echo "ON" || echo "OFF" )
-    cachyos_fixes_status=$( [[ "$_additional_patch_selection" == *"cachy"* ]] && echo "ON" || echo "OFF" )
-    crypto_device_optimization_status=$( [[ "$_additional_patch_selection" == *"crypto"* ]] && echo "ON" || echo "OFF" )
-    intel_pstate_status=$( [[ "$_additional_patch_selection" == *"intel-pstate"* ]] && echo "ON" || echo "OFF" )
-    ksm_status=$( [[ "$_additional_patch_selection" == *"ksm"* ]] && echo "ON" || echo "OFF" )
-    ntsync_status=$( [[ "$_additional_patch_selection" == *"ntsync"* ]] && echo "ON" || echo "OFF" )
-    perf_per_core_optimization_status=$( [[ "$_additional_patch_selection" == *"perf-per-core"* ]] && echo "ON" || echo "OFF" )
-    zstd_optimization_status=$( [[ "$_additional_patch_selection" == *"zstd"* ]] && echo "ON" || echo "OFF" )
-    none_status=$( [[ "$_additional_patch_selection" == *"none"* ]] && echo "ON" || echo "OFF" )
-
-    _additional_patch_selection=$(whiptail --title "Additional CachyOS Optimizations" --checklist \
-    "Enable additional optimizations (use space to select):" 20 60 11 \
-    "amd-pstate" "Enable AMD P-state Optimizations" "$amd_pstate_status" \
-    "bbr3" "Enable TCP BBR3" "$bbr3_status" \
-    "block" "Enable Block Devices Optimizations" "$block_device_optimization_status" \
-    "cachy" "Enable Additional CachyOS Fixes" "$cachyos_fixes_status" \
-    "crypto" "Enable Crypto Devices Optimizations" "$crypto_device_optimization_status" \
-    "intel-pstate" "Enable Intel P-state Optimizations" "$intel_pstate_status" \
-    "ksm" "Enable KSM Optimizations" "$ksm_status" \
-    "ntsync" "Enable NTSYNC Driver" "$ntsync_status" \
-    "perf-per-core" "Enable Perf-Per-Core Optimizations" "$perf_per_core_optimization_status" \
-    "zstd" "Enable Zstd Optimizations" "$zstd_optimization_status" \
-    "none" "Do not apply optimizations" "$none_status" \
-    3>&1 1>&2 2>&3)
-
-    if [[ "$_additional_patch_selection" == *"none"* ]]; then
-        _additional_patch_selection="none"
-    else
-        _additional_patch_selection=$(echo "$_additional_patch_selection" | tr -d '"')
-    fi
-
-    amd_pstate_status=$( [[ "$_additional_patch_selection" == *"amd-pstate"* ]] && echo "ON" || echo "OFF" )
-    bbr3_status=$( [[ "$_additional_patch_selection" == *"bbr3"* ]] && echo "ON" || echo "OFF" )
-    block_device_optimization_status=$( [[ "$_additional_patch_selection" == *"block"* ]] && echo "ON" || echo "OFF" )
-    cachyos_fixes_status=$( [[ "$_additional_patch_selection" == *"cachy"* ]] && echo "ON" || echo "OFF" )
-    crypto_device_optimization_status=$( [[ "$_additional_patch_selection" == *"crypto"* ]] && echo "ON" || echo "OFF" )
-    intel_pstate_status=$( [[ "$_additional_patch_selection" == *"intel-pstate"* ]] && echo "ON" || echo "OFF" )
-    ksm_status=$( [[ "$_additional_patch_selection" == *"ksm"* ]] && echo "ON" || echo "OFF" )
-    ntsync_status=$( [[ "$_additional_patch_selection" == *"ntsync"* ]] && echo "ON" || echo "OFF" )
-    perf_per_core_optimization_status=$( [[ "$_additional_patch_selection" == *"perf-per-core"* ]] && echo "ON" || echo "OFF" )
-    zstd_optimization_status=$( [[ "$_additional_patch_selection" == *"zstd"* ]] && echo "ON" || echo "OFF" )
-    none_status=$( [[ "$_additional_patch_selection" == *"none"* ]] && echo "ON" || echo "OFF" )
 }
 
 
@@ -534,52 +472,6 @@ apply_kernel_configuration() {
     done
 
 
-    # -- Apply additional CachyOS patches.
-
-    local additional_optimizations_patch="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/"
-    local additional_patch_files=()
-
-    IFS=' ' read -r -a selections <<< "$_additional_patch_selection"
-
-    for selection in "${selections[@]}"; do
-        case "$selection" in
-            amd-pstate) additional_patch_files+=("0001-amd-pstate.patch") ;;
-            bbr3) additional_patch_files+=("0002-bbr3.patch") ;;
-            block) additional_patch_files+=("0003-block.patch") ;;
-            cachy) additional_patch_files+=("0004-cachy.patch") ;;
-            crypto) additional_patch_files+=("0005-crypto.patch") ;;
-            intel-pstate) additional_patch_files+=("0007-intel-pstate.patch") ;;
-            ksm) additional_patch_files+=("0008-ksm.patch") ;;
-            ntsync) additional_patch_files+=("0009-ntsync.patch") ;;
-            perf-per-core) additional_patch_files+=("0010-perf-per-core.patch") ;;
-            zstd) additional_patch_files+=("0012-zstd.patch") ;;
-            none)
-                echo "No additional patches selected."
-                return 0
-                ;;
-            *)
-                echo "Unknown additional patch selection: $selection"
-                continue
-                ;;
-        esac
-    done
-
-    for patch_file in "${additional_patch_files[@]}"; do
-        echo "Applying additional patch: $patch_file"
-        patch_content=$(wget -qO- "${additional_optimizations_patch}${patch_file}")
-
-        if ! echo "$patch_content" | patch -p1 --verbose; then
-            if echo "$patch_content" | patch -R -p1 --dry-run | grep -q "Reversed (or previously applied) patch detected"; then
-                echo "Patch $patch_file was already applied. Skipping."
-            else
-                echo "Failed to apply the patch: $patch_file. Continuing with the next patch."
-                whiptail --title "Patch Application Error" --msgbox "Failed to apply the patch: $patch_file. Continuing with the next patch." 10 60
-                continue
-            fi
-        fi
-    done
-
-
     # -- Apply scheduler patches.
 
     local sched_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/sched/"
@@ -807,17 +699,6 @@ show_options() {
 
     Base Patch: $_base_patch_selection
 
-    AMD P-state: $amd_pstate_status
-    TCP BBR3: $bbr3_status
-    Block Devices: $block_device_optimization_status
-    CachyOS Fixes: $cachyos_fixes_status
-    Crypto Devices: $crypto_device_optimization_status
-    Intel P-state: $intel_pstate_status
-    KSM: $ksm_status
-    NTSYNC: $ntsync_status
-    Perf-Per-Core: $perf_per_core_optimization_status
-    Zstd: $zstd_optimization_status
-
     CPU Scheduler: $_cpusched_selection
     LLVM LTO: $_llvm_lto_selection
     Tick Rate: $_tick_rate
@@ -1021,7 +902,6 @@ while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 17 \
         "1" "Choose Kernel Configuration" \
         "2" "Configure Base Optimizations" \
-        "3" "Configure Additional Optimizations" \
         "4" "Configure CPU Scheduler" \
         "5" "Configure LLVM LTO" \
         "6" "Configure Tick Rate" \
@@ -1045,7 +925,6 @@ while true; do
     case $CHOICE in
         1) kernel_configuration ;;
         2) configure_base_optimizations ;;
-        3) configure_additional_optimizations ;;
         4) configure_cpusched ;;
         5) configure_llvm_lto ;;
         6) configure_tick_rate ;;
