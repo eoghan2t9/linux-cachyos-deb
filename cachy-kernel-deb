@@ -849,7 +849,7 @@ create_debian_packages() {
 
     cp ../.config .
 
-    make & _make_pid=$!
+    make >/dev/null 2>&1 & _make_pid=$!
     sleep 3
     kill $_make_pid 2>/dev/null
 
