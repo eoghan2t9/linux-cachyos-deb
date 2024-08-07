@@ -221,6 +221,8 @@ configure_additional_optimizations() {
     local zstd_optimization_status
     local none_status
 
+    : "${_additional_patch_selection:=}"
+
     amd_pstate_status=$( [[ "$_additional_patch_selection" == *"amd-pstate"* ]] && echo "ON" || echo "OFF" )
     bbr3_status=$( [[ "$_additional_patch_selection" == *"bbr3"* ]] && echo "ON" || echo "OFF" )
     block_device_optimization_status=$( [[ "$_additional_patch_selection" == *"block"* ]] && echo "ON" || echo "OFF" )
