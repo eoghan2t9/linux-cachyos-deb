@@ -38,8 +38,7 @@ _march="native"
 
 _selected_kernel_config="linux-cachyos"
 
-_cachyos_patch_selection="cachyos"
-
+_cachyos_patch_selection=()
 _address_masking_status="OFF"
 _amd_cache_optimizer_status="OFF"
 _amd_hfi_status="OFF"
@@ -197,40 +196,35 @@ kernel_configuration() {
 
 
 configure_kernel_patches() {
-    local cachy_base_status
-    local address_masking_status
-    local amd_cache_optimizer_status
-    local amd_hfi_status
-    local amd_pstate_status
-    local bbr3_status
-    local cachyos_fixes_status
-    local intel_pstate_status
-    local ksm_status
-    local ntsync_status
-    local perf_per_core_optimization_status
-    local t2_optimization_status
-    local thp_shrinker_status
-    local zstd_optimization_status
+    local options=(
+        "address-masking" "Enable Address Masking" "$_address_masking_status"
+        "amd-cache-optimizer" "Enable AMD Cache Optimizer" "$_amd_cache_optimizer_status"
+        "amd-hfi" "Enable AMD HFI" "$_amd_hfi_status"
+        "amd-pstate" "Enable AMD P-State Driver" "$_amd_pstate_status"
+        "bbr3" "Enable BBRv3 Congestion Control" "$_bbr3_status"
+        "cachy" "Enable Cachy Scheduler" "$_cachy_base_status"
+        "fixes" "Apply CachyOS Fixes" "$_cachyos_fixes_status"
+        "intel-pstate" "Enable Intel P-State Driver" "$_intel_pstate_status"
+        "ksm" "Enable KSM Optimizations" "$_ksm_status"
+        "ntsync" "Enable NTSYNC" "$_ntsync_status"
+        "perf-per-core" "Enable Per-Core Performance Optimization" "$_perf_per_core_optimization_status"
+        "t2" "Enable T2 Optimization" "$_t2_optimization_status"
+        "thp-shrinker" "Enable THP Shrinker" "$_thp_shrinker_status"
+        "zstd" "Enable Zstd Optimizations" "$_zstd_optimization_status"
+    )
 
-    cachy_base_status=$( [ "$_cachyos_patch_selection" = "cachyos" ] && echo "ON" || echo "OFF" )
+    local selection
+    selection=$(whiptail --title "Configure Kernel Patches" --checklist \
+        "Select the patches to apply (use space to select):" 20 78 14 \
+        "${options[@]}" 3>&1 1>&2 2>&3)
 
-    _cachyos_patch_selection=$(whiptail --title "Configure Kernel Patches" --radiolist \
-        "Select the patches to use (use space to select):" 20 60 7 \
-        "address-masking" "Use CachyOS base optimizations" "$address_masking_status" \
-        "amd-cache-optimizer" "Use CachyOS base optimizations" "$amd_cache_optimizer_status" \
-        "amd-hfi" "Use CachyOS base optimizations" "$amd_hfi_status" \
-        "amd-pstate" "Use CachyOS base optimizations" "$amd_pstate_status" \
-        "bbr3" "Use CachyOS base optimizations" "$bbr3_status" \
-        "cachy" "Use CachyOS base optimizations" "$cachy_base_status" \
-        "fixes" "Use CachyOS base optimizations" "$cachyos_fixes_status" \
-        "intel-pstate" "Use CachyOS base optimizations" "$intel_pstate_status" \
-        "ksm" "Use CachyOS base optimizations" "$ksm_status" \
-        "ntsync" "Do not apply optimizations" "$ntsync_status" \
-        "perf-per-core" "Use CachyOS base optimizations" "$perf_per_core_optimization_status" \
-        "t2" "Use CachyOS base optimizations" "$t2_optimization_status" \
-        "thp-shrinker" "Use CachyOS base optimizations" "$thp_shrinker_status" \
-        "zstd" "Use CachyOS base optimizations" "$zstd_optimization_status" \
-        3>&1 1>&2 2>&3)
+    exitstatus=$?
+    if [ $exitstatus -eq 0 ]; then
+        IFS=' ' read -r -a _cachyos_patch_selection <<< "${selection//\"/}"
+    else
+        echo "No patches selected."
+        _cachyos_patch_selection=()
+    fi
 }
 
 
@@ -483,38 +477,41 @@ apply_kernel_configuration() {
 
     # -- Apply CachyOS patches.
 
-    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/"
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
 
-    case "$_cachyos_patch_selection" in
-        "address-masking") patch_files=("0001-address-masking.patch") ;;
-        "amd-cache-optimizer") patch_files=("0002-amd-cache-optimizer.patch") ;;
-        "amd-pstate") patch_files=("0003-amd-pstate.patch") ;;
-        "amd-hfi") patch_files=("0004-amd-hfi.patch") ;;
-        "bb3") patch_files=("0005-bbr3.patch") ;;
-        "cachy")
-            patch_files=("0006-cachy.patch")
+    declare -A patch_map=(
+        ["address-masking"]="0001-address-masking.patch"
+        ["amd-cache-optimizer"]="0002-amd-cache-optimizer.patch"
+        ["amd-pstate"]="0003-amd-pstate.patch"
+        ["amd-hfi"]="0004-amd-hfi.patch"
+        ["bbr3"]="0005-bbr3.patch"
+        ["cachy"]="0006-cachy.patch"
+        ["fixes"]="0007-fixes.patch"
+        ["intel-pstate"]="0008-intel-pstate.patch"
+        ["ksm"]="0009-ksm.patch"
+        ["ntsync"]="0010-ntsync.patch"
+        ["perf-per-core"]="0011-perf-per-core.patch"
+        ["t2"]="0012-t2.patch"
+        ["thp-shrinker"]="0013-thp-shrinker.patch"
+        ["zstd"]="0014-zstd.patch"
+    )
+
+    for patch_key in "${_cachyos_patch_selection[@]}"; do
+        patch_file="${patch_map[$patch_key]}"
+        if [[ -z "$patch_file" ]]; then
+            echo "Unknown patch: $patch_key"
+            continue
+        fi
+
+        echo "Applying patch: $patch_file"
+        if ! wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1; then
+            echo "Failed to apply patch: $patch_file"
+            whiptail --title "Patch Application Error" --msgbox "Failed to apply the patch: $patch_file" 10 60
+            return 1
+        fi
+
+        if [[ "$patch_key" == "cachy" ]]; then
             scripts/config -e CONFIG_CACHY
-            ;;
-        "fixes") patch_files=("0007-fixes.patch") ;;
-        "intel-pstate") patch_files=("0008-intel-pstate.patch") ;;
-        "ksm") patch_files=("0009-ksm.patch") ;;
-        "ntsync") patch_files=("0010-ntsync.patch") ;;
-        "perf-per-core") patch_files=("0011-perf-per-core.patch") ;;
-        "t2") patch_files=("00012-t2.patch") ;;
-        "thp-shrinker") patch_files=("00013-thp-shrinker.patch") ;;
-        "zstd") patch_files=("0014-zstd.patch") ;;
-        *)
-            echo "Unknown base patch: $_cachyos_patch_selection"
-            return 1
-            ;;
-    esac
-
-    for patch_file in "${patch_files[@]}"; do
-        echo "Applying scheduler patch: $patch_file"
-        if ! patch -p1 < <(wget -c "${cachyos_patches_url}${patch_file}" -O -); then
-            echo "Failed to download and apply the patch: $patch_file"
-            whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
-            return 1
         fi
     done
 
