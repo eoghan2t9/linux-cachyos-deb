@@ -38,7 +38,8 @@ _march="native"
 
 _selected_kernel_config="linux-cachyos"
 
-_cachyos_patch_selection=()
+_cachyos_patch_selection=("cachy")
+
 _address_masking_status="OFF"
 _amd_cache_optimizer_status="OFF"
 _amd_hfi_status="OFF"
@@ -735,13 +736,42 @@ show_options() {
 
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
+    declare -A patch_descriptions=(
+        ["address-masking"]="Address Masking"
+        ["amd-cache-optimizer"]="AMD Cache Optimizer"
+        ["amd-hfi"]="AMD HFI"
+        ["amd-pstate"]="AMD P-State Driver"
+        ["bbr3"]="BBRv3 Congestion Control"
+        ["cachy"]="CachyOS Base"
+        ["fixes"]="CachyOS Fixes"
+        ["intel-pstate"]="Intel P-State Driver"
+        ["ksm"]="KSM Optimizations"
+        ["ntsync"]="NTSYNC"
+        ["perf-per-core"]="Per-Core Performance Optimization"
+        ["t2"]="T2 Optimization"
+        ["thp-shrinker"]="THP Shrinker"
+        ["zstd"]="Zstd Optimizations"
+    )
+
+    local selected_patches
+    if [[ ${#_cachyos_patch_selection[@]} -gt 0 ]]; then
+        local patch_descriptions_list=()
+        for patch_key in "${_cachyos_patch_selection[@]}"; do
+            patch_descriptions_list+=("${patch_descriptions[$patch_key]}")
+        done
+        selected_patches=$(printf ", %s" "${patch_descriptions_list[@]}")
+        selected_patches=${selected_patches:2}
+    else
+        selected_patches="None"
+    fi
+
     whiptail --title "Configuration Summary" --scrolltext --msgbox "
     Kernel (latest from kernel.org): $_kv_name
 
     CPU Architecture: $_march
     Selected Config: $_selected_kernel_config
 
-    Base Patch: $_cachyos_patch_selection
+    Applied Patches: $selected_patches
 
     CPU Scheduler: $_cpusched_selection
     LLVM LTO: $_llvm_lto_selection
