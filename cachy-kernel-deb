@@ -743,9 +743,9 @@ create_debian_packages() {
 
     sleep 3
 
-    make V=1 -j"$(nproc)" | tee cachy-kernel-deb.log
-
     # -- End of ugly "hack."
+
+    make -j"$(nproc)" | tee cachy-kernel-deb-"$(date +%Y.%m.%d-%H.%M)".log
 
     modules_build_dir=$(mktemp -d)
     make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH="$modules_build_dir"
