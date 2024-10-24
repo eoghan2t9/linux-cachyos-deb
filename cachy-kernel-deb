@@ -743,7 +743,7 @@ create_debian_packages() {
 
     sleep 3
 
-    make -j"$(nproc)" 
+    make V=1 -j"$(nproc)" | tee cachy-kernel-deb.log
 
     # -- End of ugly "hack."
 
