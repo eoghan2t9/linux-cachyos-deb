@@ -26,7 +26,7 @@
 
 # -- Exit on errors.
 
-set -eu
+set -euo pipefail
 
 
 # -- Variables to set default options.
