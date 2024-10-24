@@ -901,21 +901,20 @@ init_script
 while true; do
     CHOICE=$(whiptail --title "Kernel Configuration Menu" --menu "Choose an option (use arrows and Enter to navigate)" 25 78 17 \
         "1" "Choose Kernel Configuration" \
-        "2" "Configure Base Optimizations" \
-        "4" "Configure CPU Scheduler" \
-        "5" "Configure LLVM LTO" \
-        "6" "Configure Tick Rate" \
-        "7" "Configure Tick Type" \
-        "8" "Configure NR_CPUS" \
-        "9" "Configure Hugepages" \
-        "10" "Configure LRU" \
-        "11" "Configure Preempt Type" \
-        "12" "Configure System Optimizations" \
-        "13" "Apply Kernel Configuration and Patches" \
-        "14" "Customize Kernel Name" \
-        "15" "Show Current Configuration" \
-        "16" "Create Debian Packages" \
-        "17" "Exit" 3>&1 1>&2 2>&3)
+        "2" "Configure CPU Scheduler" \
+        "3" "Configure LLVM LTO" \
+        "4" "Configure Tick Rate" \
+        "5" "Configure Tick Type" \
+        "6" "Configure NR_CPUS" \
+        "7" "Configure Hugepages" \
+        "8" "Configure LRU" \
+        "9" "Configure Preempt Type" \
+        "10" "Configure System Optimizations" \
+        "11" "Apply Kernel Configuration and Patches" \
+        "12" "Customize Kernel Name" \
+        "13" "Show Current Configuration" \
+        "14" "Create Debian Packages" \
+        "15" "Exit" 3>&1 1>&2 2>&3)
 
     exitstatus=$?
     if [[ $exitstatus -ne 0 ]]; then
@@ -924,21 +923,20 @@ while true; do
 
     case $CHOICE in
         1) kernel_configuration ;;
-        2) configure_base_optimizations ;;
-        4) configure_cpusched ;;
-        5) configure_llvm_lto ;;
-        6) configure_tick_rate ;;
-        7) configure_tick_type ;;
-        8) configure_nr_cpus ;;
-        9) configure_hugepages ;;
-        10) configure_lru ;;
-        11) configure_preempt_type ;;
-        12) configure_system_optimizations ;;
-        13) apply_kernel_configuration ;;
-        14) customize_kernel_extraname ;;
-        15) show_options ;;
-        16) create_debian_packages ;;
-        17) break ;;
+        2) configure_cpusched ;;
+        3) configure_llvm_lto ;;
+        4) configure_tick_rate ;;
+        5) configure_tick_type ;;
+        6) configure_nr_cpus ;;
+        7) configure_hugepages ;;
+        8) configure_lru ;;
+        9) configure_preempt_type ;;
+        10) configure_system_optimizations ;;
+        11) apply_kernel_configuration ;;
+        12) customize_kernel_extraname ;;
+        13) show_options ;;
+        14) create_debian_packages ;;
+        15) break ;;
         *) echo "Invalid Option" ;;
     esac
 done
