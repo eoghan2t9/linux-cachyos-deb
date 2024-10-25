@@ -110,6 +110,7 @@ check_deps() {
     for dep in "${dependencies[@]}"; do
         dpkg -s "$dep" &>/dev/null || sudo apt install -y "$dep"
     done
+    sudo apt install -y "linux-headers-$(uname -r)" "linux-image-$(uname -r)"
 }
 
 
@@ -233,7 +234,6 @@ configure_cpusched() {
     local cachyos_default_status
     local sched_echo_status
     local sched_echo_cachy_status
-    local sched_bore_status
     local sched_bore_cachy_status
     local sched_bore_cachy_rt_status
     local none_status
@@ -242,18 +242,16 @@ configure_cpusched() {
     sched_ext_status=$( [ "$_cpusched_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
     sched_echo_status=$( [ "$_cpusched_selection" = "echo" ] && echo "ON" || echo "OFF" )
     sched_echo_cachy_status=$( [ "$_cpusched_selection" = "echo-cachy" ] && echo "ON" || echo "OFF" )
-    sched_bore_status=$( [ "$_cpusched_selection" = "bore" ] && echo "ON" || echo "OFF" )
     sched_bore_cachy_status=$( [ "$_cpusched_selection" = "bore-cachy" ] && echo "ON" || echo "OFF" )
     sched_bore_cachy_rt_status=$( [ "$_cpusched_selection" = "bore-cachy-rt" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_cpusched_selection" = "none" ] && echo "ON" || echo "OFF" )
 
     _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
         "Choose CPU Scheduler (use space to select):" 20 60 7 \
-        "cachyos-default" "Use BORE+SCHED-EXT scheduler" "$cachyos_default_status" \
+        "cachyos-default" "Use BORE scheduler" "$cachyos_default_status" \
         "sched-ext" "Use SCHED-EXT scheduler" "$sched_ext_status" \
         "echo" "Use ECHO scheduler" "$sched_echo_status" \
         "echo-cachy" "Use ECHO+SCHED-EXT scheduler" "$sched_echo_cachy_status" \
-        "bore" "Use BORE CPU scheduler" "$sched_bore_status" \
         "bore-cachy" "Use BORE+SCHED-EXT scheduler" "$sched_bore_cachy_status" \
         "bore-cachy-rt" "Use BORE+SCHED-EXT+RT scheduler" "$sched_bore_cachy_rt_status" \
         "none" "Do not configure CPU scheduler" "$none_status" \
@@ -524,11 +522,10 @@ apply_kernel_configuration() {
     local patch_files=()
 
     case "$_cpusched_selection" in
-        "cachyos-default") patch_files=("0001-sched-ext.patch") ;;
+        "cachyos-default") patch_files=("0001-bore.patch") ;;
         "sched-ext") patch_files=("0001-sched-ext.patch") ;;
         "echo") patch_files=("0001-echo.patch") ;;
         "echo-cachy") patch_files=("0001-echo-cachy.patch") ;;
-        "bore") patch_files=("0001-bore.patch") ;;
         "bore-cachy") patch_files=("0001-bore-cachy.patch") ;;
         "bore-cachy-rt")
             patch_files=("0001-bore-cachy-rt.patch" "${misc_patch_base_url}0001-rt.patch")
