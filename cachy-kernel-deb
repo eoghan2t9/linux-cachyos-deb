@@ -57,7 +57,7 @@ _zstd_optimization_status="OFF"
 
 _cpusched_selection="cachyos-default"
 
-_llvm_lto_selection="none"
+_llvm_lto_selection="thin"
 
 _tick_rate="1000"
 
@@ -794,7 +794,7 @@ show_options() {
 
 
 create_debian_packages() {
-    echo "Creating Debian package..."
+    echo "Compiling $_kv_name..."
 
     cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
 
@@ -835,6 +835,8 @@ create_debian_packages() {
     local kernel_pkg_name="linux-image-cachyos-${kernel_version}"
     kernel_pkg_version=$(date +%Y.%m.%d-%H.%M)
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
+
+     echo "Creating Debian package..."
 
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
