@@ -58,7 +58,7 @@ Contributions are welcome! If you have suggestions for improving the script or a
 
 # License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+The repository and its contents are licensed under BSD-3-Clause.
 
 
 # Issues
