@@ -1,7 +1,7 @@
 # CachyOS Kernel Builder for Debian-based Distributions
 
 <div align="center">
-  <img src="https://wiki.cachyos.org/_astro/logo.BL2wM24g_Z1ms4u6.webp" width="64" alt="CachyOS logo"></img>
+  <img src="https://github.com/CachyOS/calamares-config/raw/grub-3.2/etc/calamares/branding/cachyos/logo.png" width="64" alt="CachyOS logo"></img>
   <br/>
   <h1 align="center">CachyOS</h1>
   <p align="center">CachyOS provides enhanced kernels that offer improved performance and other benefits.</p>
@@ -16,8 +16,8 @@ The script automates the configuration and optimization of the Linux Kernel buil
 
 The script provides the following:
 
-- Build a Linux Kernel using the custom configurations by CachyOS.
-- Advanced configuration options including compilation optimizations.
+- Build a Linux Kernel using custom configurations from CachyOS.
+- Advanced configuration options, including compilation optimizations.
 - Create distributable Debian packages.
 
 # Usage
@@ -35,19 +35,19 @@ The script includes advanced configuration options for users who want to fine-tu
 - **Linux Kernel Configuration**: Choose from different configuration profiles for the Linux Kernel from CachyOS.
 - **CPU Scheduler**: Choose between schedulers like SCHED_EXT, BORE, ECHO and RT or combinations of them.
 - **Configure LLVM's Link Time Optimization (LTO)**: Select from Thin and Full LTO for better optimization.
-- **Configurable Tick Rate and Tick Types**: Configure the kernel tick rate and types according to your system's needs.
+- **Configurable Tick Rate and Tick Types**: You can configure the kernel tick rate and types according to your system's needs.
 - **Configurable NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
 - **Configurable Hugepages**: Enable Hugepages support or not.
 - **Configurable LRU**: Configure the Least Recently Used memory management mechanism.
 - **Configurable Preemption Type**: Kernel preemption types generally control how the Linux kernel handles tasks and interrupts, affecting system responsiveness and latency.
     - **No Forced Preemption**: This mode disables kernel preemption entirely, only allowing preemption at explicit preemption points.
-    - **Voluntary Kernel Preemption**: This mode allows the kernel to preempt tasks at certain well-defined preemption points. It offers a balance between low latency and high throughput.
+    - **Voluntary Kernel Preemption**: This mode allows the kernel to preempt tasks at specific, well-defined preemption points. It offers a balance between low latency and high throughput.
     - **Preemptible Kernel (Low-Latency Desktop)**: In this mode, the kernel can be preempted almost anywhere, allowing for very low latency and high responsiveness.
     - **Real-Time Preemption**: This mode is designed for real-time applications where minimizing latency is critical.
 - **Configurable Kernel Name**: Choose a name for your custom kernel.
-- **Additional Optimizations**: Optimizations targeting aspects of system performance and can provide benefits depending on the workload and system configuration.
+- **Additional Optimizations**: Optimizations target aspects of system performance and can provide benefits depending on the workload and system configuration.
     - **Use GCC -O3 Optimizations**: Aggressively optimizes compiled code for speed, possibly increasing binary size and compilation time.
-    - **Enable Performance Governor**: Sets the CPU to run at maximum frequency, boosting performance but increasing power consumption and heat.
+    - **Enable Performance Governor**: This setting sets the CPU to run at maximum frequency, boosting performance but increasing power consumption and heat.
     - **Enable VMA Optimizations**: Enhances memory management efficiency, potentially improving application performance.
     - **Enable DAMON**: Monitors data access patterns to optimize memory usage and improve performance.
     - **Enable NUMA**: Optimizes memory allocation and access patterns on NUMA systems to reduce latency.
@@ -62,6 +62,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 
 # Issues
-If you find problems with the contents of this repository please create an issue.
+
+If you find problems with the contents of this repository, please create an issue.
 
 ©2024 Laio O. Seman, Nitrux Latinoamericana S.C.
