@@ -960,8 +960,8 @@ check_deps
 
 # -- Ask for user confirmation.
 
-whiptail --title "CachyOS Kernel Builder" --msgbox "This is a development version of the CachyOS Kernel Builder. Use at your own risk!." 8 78
-whiptail --title "Secure Boot Warning" --yesno "CachyOS Kernel Builder will generate unsigned kernels incompatible with Secure Boot. Do you want to continue?" 8 78
+whiptail --title "CachyOS Kernel Builder for Debian-based Distributions" --msgbox "Welcome to the CachyOS Kernel Builder for Debian-based Distributions\n\nLicensed under the BSD-3-Clause license — ©2024 Nitrux Latinoamericana S.C." 10 88
+whiptail --title "Secure Boot Warning" --yesno "CachyOS Kernel Builder will generate unsigned kernels incompatible with Secure Boot.\nDo you want to continue?" 8 88
 
 
 # -- Run main function.
