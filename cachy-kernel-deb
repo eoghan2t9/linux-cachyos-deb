@@ -157,13 +157,9 @@ init_script() {
 
 kernel_configuration() {
     local options=(
-        "linux-cachyos" "Use CachyOS BPF+BORE configuration" OFF
-        "linux-cachyos-bore" "Use CachyOS BORE configuration" OFF
-        "linux-cachyos-echo" "Use CachyOS ECHO configuration" OFF
-        "linux-cachyos-eevdf" "Use CachyOS EEVDF configuration" OFF
-        "linux-cachyos-hardened" "Use CachyOS RT configuration" OFF
-        "linux-cachyos-rt-bore" "Use CachyOS BORE+RT configuration" OFF
-        "linux-cachyos-sched-ext" "Use CachyOS BPF+SCHED-EXT configuration" OFF
+        "linux-cachyos-bore" "Use BORE + Cachy Sauce configuration" OFF
+        "linux-bore" "Use BORE configuration" OFF
+        "linux-prjc" "Use BMQ/PDS configuration" OFF
     )
 
     local num_items=$(( ${#options[@]} / 3 ))
