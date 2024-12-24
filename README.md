@@ -8,32 +8,30 @@
 </div>
 
 
-This repository contains a script for building the Linux Kernel with various optimizations from CachyOS tailored to your system's CPU architecture.
-
-The script automates the configuration and optimization of the Linux Kernel build according to your hardware and preferences and creates distributable Debian packages with these modifications.
+This repository contains a TUI utility for building the Linux Kernel with various optimizations from CachyOS tailored to your system's CPU architecture. It automates the configuration and creates distributable Debian packages with these modifications.
 
 # Features
 
-The script provides the following:
+The utility provides the following:
 
-- Build a Linux Kernel using custom configurations from CachyOS.
+- Build a Linux Kernel using [patches from CachyOS](https://github.com/CachyOS/kernel-patches).
 - Advanced configuration options, including compilation optimizations.
 - Create distributable Debian packages.
 
 # Usage
 
-To use the script, follow these steps:
+To use the utility, follow these steps:
 
 1. Clone the repository to your local machine.
-2. Make the script executable with `chmod +x cachy-kernel-deb` and move the script to a directory in the `$PATH`.
-3. Run the script with `cachy-kernel-deb` and follow the on-screen prompts to configure the kernel and build the packages.
+2. Make the utility executable with `chmod +x cachy-kernel-deb` and move the utility to a directory in the `$PATH`.
+3. Run the utility with `cachy-kernel-deb` and follow the on-screen prompts to configure the kernel and build the packages.
 
 # Advanced Configuration
 
-The script includes advanced configuration options for users who want to fine-tune their kernel:
+The utility includes advanced configuration options for users who want to fine-tune their kernel:
 
-- **Linux Kernel Configuration**: Choose from different configuration profiles for the Linux Kernel from CachyOS.
-- **CPU Scheduler**: Choose between schedulers like SCHED_EXT, BORE, ECHO and RT or combinations of them.
+- **Linux Kernel Configuration**: Choose from different configuration patches for the Linux Kernel from CachyOS.
+- **CPU Scheduler**: Choose between schedulers like BORE, BORE+Cachy Sauce and BMQ/PDS.
 - **Configure LLVM's Link Time Optimization (LTO)**: Select from Thin and Full LTO for better optimization.
 - **Configurable Tick Rate and Tick Types**: You can configure the kernel tick rate and types according to your system's needs.
 - **Configurable NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
@@ -54,12 +52,11 @@ The script includes advanced configuration options for users who want to fine-tu
 
 # Contributing
 
-Contributions are welcome! If you have suggestions for improving the script or adding new features, please open an issue or submit a pull request.
+Contributions are welcome! If you have suggestions for improving the utility or adding new features, please open an issue or submit a pull request.
 
 # License
 
 The repository and its contents are licensed under BSD-3-Clause.
-
 
 # Issues
 

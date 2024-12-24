@@ -40,22 +40,20 @@ _selected_kernel_config="linux-cachyos"
 
 _cachyos_patch_selection=("cachy")
 
-_address_masking_status="OFF"
 _amd_cache_optimizer_status="OFF"
-_amd_hfi_status="OFF"
 _amd_pstate_status="OFF"
+_autofdo_status="OFF"
 _bbr3_status="OFF"
 _cachy_base_status="ON"
-_cachyos_fixes_status="OFF"
-_intel_pstate_status="OFF"
-_ksm_status="OFF"
+_crypto_status="ON"
+_cachy_fixes_status="OFF"
 _ntsync_status="OFF"
 _perf_per_core_optimization_status="OFF"
+_pksm_status="OFF"
 _t2_optimization_status="OFF"
-_thp_shrinker_status="OFF"
 _zstd_optimization_status="OFF"
 
-_cpusched_selection="cachyos-default"
+_cpusched_selection="bore-cachy"
 
 _llvm_lto_selection="thin"
 
@@ -129,6 +127,7 @@ init_script() {
         ZNVER2) MARCH="ZEN2" ;;
         ZNVER3) MARCH="ZEN3" ;;
         ZNVER4) MARCH="ZEN4" ;;
+        ZNVER5) MARCH="ZEN5" ;;
         BDVER1) MARCH="BULLDOZER" ;;
         BDVER2) MARCH="PILEDRIVER" ;;
         BDVER3) MARCH="STEAMROLLER" ;;
@@ -199,19 +198,15 @@ kernel_configuration() {
 
 configure_kernel_patches() {
     local options=(
-        "address-masking" "Enable Address Masking" "$_address_masking_status"
-        "amd-cache-optimizer" "Enable AMD Cache Optimizer" "$_amd_cache_optimizer_status"
-        "amd-hfi" "Enable AMD HFI" "$_amd_hfi_status"
         "amd-pstate" "Enable AMD P-State Driver" "$_amd_pstate_status"
+        "autofdo" "Enable AutoFDO Optimizations" "$_amd_pstate_status"
         "bbr3" "Enable BBRv3 Congestion Control" "$_bbr3_status"
-        "cachy" "Enable Cachy Scheduler" "$_cachy_base_status"
-        "fixes" "Apply CachyOS Fixes" "$_cachyos_fixes_status"
-        "intel-pstate" "Enable Intel P-State Driver" "$_intel_pstate_status"
-        "ksm" "Enable KSM Optimizations" "$_ksm_status"
+        "cachy" "Enable CachyOS Base Optimizations" "$_cachy_base_status"
+        "crypto" "Enable Cryptography Optimizations" "$_crypto_status"
         "ntsync" "Enable NTSYNC" "$_ntsync_status"
+        "fixes" "Apply CachyOS Fixes" "$_cachy_fixes_status"
         "perf-per-core" "Enable Per-Core Performance Optimization" "$_perf_per_core_optimization_status"
-        "t2" "Enable T2 Optimization" "$_t2_optimization_status"
-        "thp-shrinker" "Enable THP Shrinker" "$_thp_shrinker_status"
+        "pksm" "Enable Process KSM Optimizations" "$_pksm_status"
         "zstd" "Enable Zstd Optimizations" "$_zstd_optimization_status"
     )
 
@@ -231,29 +226,21 @@ configure_kernel_patches() {
 
 
 configure_cpusched() {
-    local cachyos_default_status
-    local sched_echo_status
-    local sched_echo_cachy_status
     local sched_bore_cachy_status
-    local sched_bore_cachy_rt_status
+    local sched_bore_status
+    local sched_prjc_cachy_status
     local none_status
 
-    cachyos_default_status=$( [ "$_cpusched_selection" = "cachyos-default" ] && echo "ON" || echo "OFF" )
-    sched_ext_status=$( [ "$_cpusched_selection" = "sched-ext" ] && echo "ON" || echo "OFF" )
-    sched_echo_status=$( [ "$_cpusched_selection" = "echo" ] && echo "ON" || echo "OFF" )
-    sched_echo_cachy_status=$( [ "$_cpusched_selection" = "echo-cachy" ] && echo "ON" || echo "OFF" )
     sched_bore_cachy_status=$( [ "$_cpusched_selection" = "bore-cachy" ] && echo "ON" || echo "OFF" )
-    sched_bore_cachy_rt_status=$( [ "$_cpusched_selection" = "bore-cachy-rt" ] && echo "ON" || echo "OFF" )
+    sched_bore_status=$( [ "$_cpusched_selection" = "bore" ] && echo "ON" || echo "OFF" )
+    sched_prjc_cachy_status=$( [ "$_cpusched_selection" = "prjc-cachy" ] && echo "ON" || echo "OFF" )
     none_status=$( [ "$_cpusched_selection" = "none" ] && echo "ON" || echo "OFF" )
 
     _cpusched_selection=$(whiptail --title "CPU Scheduler Configuration" --radiolist \
         "Choose CPU Scheduler (use space to select):" 20 60 7 \
-        "cachyos-default" "Use BORE scheduler" "$cachyos_default_status" \
-        "sched-ext" "Use SCHED-EXT scheduler" "$sched_ext_status" \
-        "echo" "Use ECHO scheduler" "$sched_echo_status" \
-        "echo-cachy" "Use ECHO+SCHED-EXT scheduler" "$sched_echo_cachy_status" \
-        "bore-cachy" "Use BORE+SCHED-EXT scheduler" "$sched_bore_cachy_status" \
-        "bore-cachy-rt" "Use BORE+SCHED-EXT+RT scheduler" "$sched_bore_cachy_rt_status" \
+        "bore-cachy" "Use BORE+Cachy Sauce scheduler" "$sched_bore_cachy_status" \
+        "bore" "Use BORE scheduler" "$sched_bore_status" \
+        "prjc-cachy" "Use BMQ/PDS scheduler" "$sched_prjc_cachy_status" \
         "none" "Do not configure CPU scheduler" "$none_status" \
         3>&1 1>&2 2>&3)
 }
@@ -479,20 +466,18 @@ apply_kernel_configuration() {
     local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
 
     declare -A patch_map=(
-        ["address-masking"]="0001-address-masking.patch"
-        ["amd-cache-optimizer"]="0002-amd-cache-optimizer.patch"
-        ["amd-pstate"]="0003-amd-pstate.patch"
-        ["amd-hfi"]="0004-amd-hfi.patch"
-        ["bbr3"]="0005-bbr3.patch"
-        ["cachy"]="0006-cachy.patch"
+        ["amd-cache-optimizer"]="0001-amd-cache-optimizer.patch"
+        ["amd-pstate"]="0002-amd-pstate.patch"
+        ["autofdo"]="0003-autofdo.patch"
+        ["bbr3"]="0004-bbr3.patch"
+        ["cachy"]="0005-cachy.patch"
+        ["crypto"]="0006-crypto.patch"
         ["fixes"]="0007-fixes.patch"
-        ["intel-pstate"]="0008-intel-pstate.patch"
-        ["ksm"]="0009-ksm.patch"
-        ["ntsync"]="0010-ntsync.patch"
-        ["perf-per-core"]="0011-perf-per-core.patch"
-        ["t2"]="0012-t2.patch"
-        ["thp-shrinker"]="0013-thp-shrinker.patch"
-        ["zstd"]="0014-zstd.patch"
+        ["ntsync"]="0008-ntsync.patch"
+        ["perf-per-core"]="0009-perf-per-core.patch"
+        ["pksm"]="0010-pksm.patch"
+        ["t2"]="0011-t2.patch"
+        ["zstd"]="0012-zstd.patch"
     )
 
     for patch_key in "${_cachyos_patch_selection[@]}"; do
@@ -518,18 +503,12 @@ apply_kernel_configuration() {
     # -- Apply scheduler patches.
 
     local sched_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/sched/"
-    local misc_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/misc/"
     local patch_files=()
 
     case "$_cpusched_selection" in
-        "cachyos-default") patch_files=("0001-bore.patch") ;;
-        "sched-ext") patch_files=("0001-sched-ext.patch") ;;
-        "echo") patch_files=("0001-echo.patch") ;;
-        "echo-cachy") patch_files=("0001-echo-cachy.patch") ;;
         "bore-cachy") patch_files=("0001-bore-cachy.patch") ;;
-        "bore-cachy-rt")
-            patch_files=("0001-bore-cachy-rt.patch" "${misc_patch_base_url}0001-rt.patch")
-            ;;
+        "bore") patch_files=("0001-bore.patch") ;;
+        "prjc-cachy") patch_files=("0001-prjc-cachy.patch") ;;
         "none")
             echo "No CPU scheduler selected for patching."
             return 0
@@ -734,19 +713,17 @@ show_options() {
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
     declare -A patch_descriptions=(
-        ["address-masking"]="Address Masking"
         ["amd-cache-optimizer"]="AMD Cache Optimizer"
-        ["amd-hfi"]="AMD HFI"
         ["amd-pstate"]="AMD P-State Driver"
+        ["amd-pstate"]="AutoFDO Optimizations"
         ["bbr3"]="BBRv3 Congestion Control"
-        ["cachy"]="CachyOS Base"
+        ["cachy"]="CachyOS Base Optimizations"
+        ["crypto"]="Cryptography Optimizations"
         ["fixes"]="CachyOS Fixes"
-        ["intel-pstate"]="Intel P-State Driver"
-        ["ksm"]="KSM Optimizations"
-        ["ntsync"]="NTSYNC"
+        ["ntsync"]="Enable NTSYNC Optimizations"
         ["perf-per-core"]="Per-Core Performance Optimization"
-        ["t2"]="T2 Optimization"
-        ["thp-shrinker"]="THP Shrinker"
+        ["pksm"]="Process KSM Optimizations"
+        ["t2"]="T2 Optimizations"
         ["zstd"]="Zstd Optimizations"
     )
 
