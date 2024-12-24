@@ -349,19 +349,16 @@ configure_lru() {
 configure_preempt_type() {
     local preempt_voluntary
     local preempt_preempt
-    local preempt_rt
     local preempt_none
 
     preempt_voluntary=$( [ "$_preempt" = "voluntary" ] && echo "ON" || echo "OFF" )
     preempt_preempt=$( [ "$_preempt" = "preempt" ] && echo "ON" || echo "OFF" )
-    preempt_rt=$( [ "$_preempt" = "rt" ] && echo "ON" || echo "OFF" )
     preempt_none=$( [ "$_preempt" = "none" ] && echo "ON" || echo "OFF" )
 
     _preempt=$(whiptail --title "Preempt Type Configuration" --radiolist \
         "Choose Preempt Type (use space to select):" 15 60 4 \
         "voluntary" "Voluntary Preemption" "$preempt_voluntary" \
         "preempt" "Preemptible Kernel (Low-Latency Desktop)" "$preempt_preempt" \
-        "rt" "Real-Time Preemption" "$preempt_rt" \
         "none" "No Forced Preemption" "$preempt_none" \
         3>&1 1>&2 2>&3)
 
@@ -371,9 +368,6 @@ configure_preempt_type() {
             ;;
         preempt)
             _preempt="preempt"
-            ;;
-        rt)
-            _preempt="rt"
             ;;
         none)
             _preempt="none"
