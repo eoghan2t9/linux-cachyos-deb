@@ -157,7 +157,7 @@ init_script() {
 
 kernel_configuration() {
     local options=(
-        "linux-cachyos-bore" "Use BORE + Cachy Sauce configuration" OFF
+        "linux-cachyos" "Use BORE + Cachy Sauce configuration" OFF
         "linux-bore" "Use BORE configuration" OFF
         "linux-prjc" "Use BMQ/PDS configuration" OFF
     )
