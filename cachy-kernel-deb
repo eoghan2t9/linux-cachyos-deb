@@ -532,23 +532,14 @@ apply_kernel_configuration() {
     # -- Apply the user selections to the kernel configuration.
 
     case "$_cpusched_selection" in
-        cachyos-default | bore-cachy)
+        bore-cachy)
             scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT
-            ;;
-        sched-ext)
-            scripts/config -e SCHED_CLASS_EXT
-            ;;
-        echo )
-            scripts/config -e CONFIG_ECHO_SCHED
-            ;;
-        echo-cachy )
-            scripts/config -e CONFIG_ECHO_SCHED -e SCHED_BORE -e SCHED_CLASS_EXT
             ;;
         bore )
             scripts/config -e SCHED_BORE
             ;;
-        bore-cachy-rt)
-            scripts/config -e SCHED_BORE -e SCHED_CLASS_EXT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPT_NONE -e PREEMPT_RT -d PREEMPT_DYNAMIC -d PREEMPT_BUILD
+        prjc-cachy)
+            scripts/config -e SCHED_ALT -e SCHED_BMQ
             ;;
     esac
 
@@ -561,9 +552,6 @@ apply_kernel_configuration() {
             ;;
         server)
             scripts/config -e PREEMPT_NONE_BUILD -e PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT -d PREEMPTION -d PREEMPT_DYNAMIC
-            ;;
-        rt)
-            scripts/config -e PREEMPT_BUILD -e PREEMPT_RT -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT -e PREEMPT_COUNT -e PREEMPTION -d PREEMPT_DYNAMIC
             ;;
         none)
             ;;
