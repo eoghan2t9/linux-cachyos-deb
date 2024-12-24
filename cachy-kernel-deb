@@ -453,7 +453,7 @@ apply_kernel_configuration() {
 
     # -- Apply CachyOS patches.
 
-    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/all/"
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
 
     declare -A patch_map=(
         ["amd-cache-optimizer"]="0001-amd-cache-optimizer.patch"
@@ -492,7 +492,7 @@ apply_kernel_configuration() {
 
     # -- Apply scheduler patches.
 
-    local sched_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/master/${_major}.${_mid}/sched/"
+    local sched_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/sched/"
     local patch_files=()
 
     case "$_cpusched_selection" in
