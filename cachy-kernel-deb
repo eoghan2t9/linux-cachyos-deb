@@ -434,14 +434,9 @@ apply_kernel_configuration() {
     fi
 
     local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}"
-    local config_suffix
-    config_suffix="/${_selected_kernel_config}"
+    local config_suffix="$_selected_kernel_config"
 
-    if [[ "$_selected_kernel_config" == "linux-cachyos" ]]; then
-        config_suffix="/linux-cachyos"
-    fi
-
-    local config_url="${base_url}${config_suffix}/config"
+    local config_url="${base_url}/${config_suffix}/config"
     echo "Config URL: $config_url"
 
     if ! wget -c "$config_url" -O .config; then
