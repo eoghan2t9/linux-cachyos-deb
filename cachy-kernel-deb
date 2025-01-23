@@ -433,7 +433,7 @@ apply_kernel_configuration() {
         return 1
     fi
 
-    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/master"
+    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}"
     local config_suffix
     config_suffix="/${_selected_kernel_config}"
 
