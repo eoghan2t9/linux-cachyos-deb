@@ -31,9 +31,6 @@ set -eu
 
 # -- Variables to set default options.
 
-_kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
-_kv_name=$(basename "$_kv_url" .tar.xz)
-
 _march="native"
 
 _selected_kernel_config="linux-cachyos"
@@ -406,32 +403,45 @@ configure_system_optimizations() {
 }
 
 
+select_kernel_version() {
+    local kernel_versions
+    kernel_versions=$(curl -s https://www.kernel.org | grep -oP 'linux-\K[0-9]+\.[0-9]+(?=\.tar\.xz)' | sort -Vr)
+
+    if [[ -z "$kernel_versions" ]]; then
+        echo "Failed to fetch kernel versions from kernel.org."
+        exit 1
+    fi
+
+    local options=()
+    while IFS= read -r version; do
+        options+=("$version" "Kernel version $version" OFF)
+    done <<< "$kernel_versions"
+
+    local selection
+    selection=$(whiptail --title "Kernel Version Selection" --radiolist \
+        "Select the kernel version to download:" 20 78 10 \
+        "${options[@]}" 3>&1 1>&2 2>&3)
+
+    if [[ -n "$selection" ]]; then
+        echo "Selected kernel version: $selection"
+        _kernel_version="$selection"
+        _kv_url="https://cdn.kernel.org/pub/linux/kernel/v${_kernel_version%%.*}.x/linux-${_kernel_version}.tar.xz"
+        _kv_name="linux-${_kernel_version}"
+    else
+        echo "No kernel version selected. Using the latest version."
+        # Default to the latest version
+        _kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
+        _kv_name=$(basename "$_kv_url" .tar.xz)
+        _kernel_version="${_kv_name#linux-}"
+    fi
+}
+
+
 apply_kernel_configuration() {
     echo "Starting kernel configuration process..."
 
-    if [ ! -f "linux.tar.xz" ]; then
-        echo "Downloading kernel archive..."
-        if ! wget -c "$_kv_url" -O "linux.tar.xz"; then
-            echo "Failed to download the kernel archive."
-            return 1
-        fi
-    else
-        echo "Kernel archive already exists. Skipping download."
-    fi
-
-    tar -xf "linux.tar.xz"
-
-    cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
-
-    local _major
-    local _mid
-    _major=$(echo "$_kv_name" | grep -oP 'linux-\K\d+')
-    _mid=$(echo "$_kv_name" | grep -oP 'linux-\d+\.\K\d+')
-
-    if [[ -z "$_major" || -z "$_mid" ]]; then
-        echo "Error extracting kernel version numbers."
-        return 1
-    fi
+    local _major="${_kernel_version%%.*}"
+    local _mid="${_kernel_version#*.}"
 
     local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}"
     local config_suffix="$_selected_kernel_config"
@@ -909,6 +919,14 @@ check_deps
 
 whiptail --title "CachyOS Kernel Builder for Debian-based Distributions" --msgbox "Welcome to the CachyOS Kernel Builder for Debian-based Distributions\n\nLicensed under the BSD-3-Clause license — ©2024 Nitrux Latinoamericana S.C." 10 88
 whiptail --title "Secure Boot Warning" --yesno "CachyOS Kernel Builder will generate unsigned kernels incompatible with Secure Boot.\nDo you want to continue?" 8 88
+
+
+# -- Prompt the user to select a kernel version.
+
+select_kernel_version
+
+echo "Downloading kernel: $_kv_url"
+wget -c "$_kv_url" -O "${_kv_name}.tar.xz"
 
 
 # -- Run main function.
