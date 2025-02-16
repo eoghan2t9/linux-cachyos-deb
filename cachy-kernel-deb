@@ -434,6 +434,11 @@ select_kernel_version() {
         _kernel_version="${_kv_name#linux-}"
     fi
 
+    if [[ -d "$_kv_name" ]]; then
+        echo "Removing existing kernel source directory: $_kv_name"
+        rm -rf "$_kv_name"
+    fi
+
     if [[ ! -f "${_kv_name}.tar.xz" ]]; then
         echo "Downloading kernel source: $_kv_url"
         wget -c "$_kv_url" -O "${_kv_name}.tar.xz" || {
@@ -444,15 +449,11 @@ select_kernel_version() {
         echo "Kernel source already downloaded."
     fi
 
-    if [[ ! -d "$_kv_name" ]]; then
-        echo "Extracting kernel source..."
-        tar -xf "${_kv_name}.tar.xz" || {
-            echo "Error: Failed to extract kernel source."
-            exit 1
-        }
-    else
-        echo "Kernel source already extracted."
-    fi
+    echo "Extracting kernel source..."
+    tar -xf "${_kv_name}.tar.xz" || {
+        echo "Error: Failed to extract kernel source."
+        exit 1
+    }
 
     cd "$_kv_name" || {
         echo "Error: Failed to enter the kernel source directory $_kv_name."
@@ -570,7 +571,10 @@ apply_kernel_configuration() {
 
     for patch_file in "${patch_files[@]}"; do
         echo "Applying scheduler patch: $patch_file"
-        if ! wget -qO- "${sched_patch_base_url}${patch_file}" | patch -p1; then
+
+        wget -qO "$patch_file" "${sched_patch_base_url}${patch_file}"
+
+        if ! patch -p1 < "$patch_file"; then
             echo "Patch failed: $patch_file. Checking for errors..."
             
             if [[ -f kernel/sched/fair.c.rej ]]; then
@@ -581,12 +585,12 @@ apply_kernel_configuration() {
                 if [[ -n "$failed_lines" ]]; then
                     echo "Adjusting patch based on failed lines: $failed_lines"
                     
-                    wget -qO "${patch_file}.backup" "${sched_patch_base_url}${patch_file}"
+                    cp "$patch_file" "${patch_file}.backup"
 
                     sed -i 's/^@@ -\([0-9]\+\),\([0-9]\+\) @@/@@ -\1,\2 @@/' "$patch_file"
 
                     echo "Reapplying adjusted patch: $patch_file"
-                    if wget -qO- "${sched_patch_base_url}${patch_file}" | patch -p1; then
+                    if patch -p1 < "$patch_file"; then
                         echo "Patch successfully applied after adjustment!"
                         continue
                     fi
@@ -594,7 +598,7 @@ apply_kernel_configuration() {
             fi
 
             echo "Applying scheduler patch with fuzzing..."
-            if wget -qO- "${sched_patch_base_url}${patch_file}" | patch -p1 --fuzz=3; then
+            if patch -p1 --fuzz=3 < "$patch_file"; then
                 echo "Scheduler patch applied successfully with fuzz."
                 continue
             fi
