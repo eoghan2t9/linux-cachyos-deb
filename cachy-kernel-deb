@@ -473,17 +473,16 @@ apply_kernel_configuration() {
 
     local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}"
     local config_suffix="$_selected_kernel_config"
-
     local config_url="${base_url}/${config_suffix}/config"
-    echo "Config URL: $config_url"
 
+    echo "Config URL: $config_url"
     if ! wget -c "$config_url" -O .config; then
         echo "Failed to download the kernel configuration."
         return 1
     fi
 
 
-    # -- Apply CachyOS patches.
+    # -- Apply CachyOS patches with auto-fix mechanism.
 
     local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
 
@@ -511,6 +510,34 @@ apply_kernel_configuration() {
 
         echo "Applying patch: $patch_file"
         if ! wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1; then
+            echo "Patch failed: $patch_file. Checking for errors..."
+            
+            if [[ -f kernel/sched/fair.c.rej ]]; then
+                echo "Patch failure detected in kernel/sched/fair.c.rej"
+                
+                failed_lines=$(grep -E '^--- ' kernel/sched/fair.c.rej | awk '{print $2}')
+
+                if [[ -n "$failed_lines" ]]; then
+                    echo "Adjusting patch based on failed lines: $failed_lines"
+                    
+                    wget -qO "${patch_file}.backup" "${cachyos_patches_url}${patch_file}"
+
+                    sed -i 's/^@@ -\([0-9]\+\),\([0-9]\+\) @@/@@ -\1,\2 @@/' "$patch_file"
+
+                    echo "Reapplying adjusted patch: $patch_file"
+                    if wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1; then
+                        echo "Patch successfully applied after adjustment!"
+                        continue
+                    fi
+                fi
+            fi
+
+            echo "Applying patch with fuzzing..."
+            if wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1 --fuzz=3; then
+                echo "Patch applied successfully with fuzz."
+                continue
+            fi
+
             echo "Failed to apply patch: $patch_file"
             whiptail --title "Patch Application Error" --msgbox "Failed to apply the patch: $patch_file" 10 60
             return 1
@@ -522,7 +549,7 @@ apply_kernel_configuration() {
     done
 
 
-    # -- Apply scheduler patches.
+    # -- Apply scheduler patches with auto-fix mechanism.
 
     local sched_patch_base_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/sched/"
     local patch_files=()
@@ -543,7 +570,35 @@ apply_kernel_configuration() {
 
     for patch_file in "${patch_files[@]}"; do
         echo "Applying scheduler patch: $patch_file"
-        if ! patch -p1 < <(wget -c "${sched_patch_base_url}${patch_file}" -O -); then
+        if ! wget -qO- "${sched_patch_base_url}${patch_file}" | patch -p1; then
+            echo "Patch failed: $patch_file. Checking for errors..."
+            
+            if [[ -f kernel/sched/fair.c.rej ]]; then
+                echo "Patch failure detected in kernel/sched/fair.c.rej"
+                
+                failed_lines=$(grep -E '^--- ' kernel/sched/fair.c.rej | awk '{print $2}')
+
+                if [[ -n "$failed_lines" ]]; then
+                    echo "Adjusting patch based on failed lines: $failed_lines"
+                    
+                    wget -qO "${patch_file}.backup" "${sched_patch_base_url}${patch_file}"
+
+                    sed -i 's/^@@ -\([0-9]\+\),\([0-9]\+\) @@/@@ -\1,\2 @@/' "$patch_file"
+
+                    echo "Reapplying adjusted patch: $patch_file"
+                    if wget -qO- "${sched_patch_base_url}${patch_file}" | patch -p1; then
+                        echo "Patch successfully applied after adjustment!"
+                        continue
+                    fi
+                fi
+            fi
+
+            echo "Applying scheduler patch with fuzzing..."
+            if wget -qO- "${sched_patch_base_url}${patch_file}" | patch -p1 --fuzz=3; then
+                echo "Scheduler patch applied successfully with fuzz."
+                continue
+            fi
+
             echo "Failed to download and apply the patch: $patch_file"
             whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
             return 1
