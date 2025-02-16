@@ -101,7 +101,7 @@ export NEWT_COLORS='
 # -- Functions.
 
 check_deps() {
-    dependencies=(git libncurses-dev curl gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm bc rsync whiptail)
+    dependencies=(git libncurses-dev curl gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm bc rsync whiptail jq)
     for dep in "${dependencies[@]}"; do
         dpkg -s "$dep" &>/dev/null || sudo apt install -y "$dep"
     done
@@ -405,7 +405,7 @@ configure_system_optimizations() {
 
 select_kernel_version() {
     local kernel_versions
-    kernel_versions=$(curl -s https://www.kernel.org | grep -oP 'linux-\K[0-9]+\.[0-9]+(?=\.tar\.xz)' | sort -Vr)
+    kernel_versions=$(curl -s https://www.kernel.org/releases.json | jq -r '.releases[] | select(.moniker == "stable") | .version' | sort -Vr)
 
     if [[ -z "$kernel_versions" ]]; then
         echo "Failed to fetch kernel versions from kernel.org."
@@ -429,19 +429,47 @@ select_kernel_version() {
         _kv_name="linux-${_kernel_version}"
     else
         echo "No kernel version selected. Using the latest version."
-        # Default to the latest version
-        _kv_url=$(curl -s https://www.kernel.org | grep -A 1 'id="latest_link"' | awk 'NR==2' | grep -oP 'href="\K[^"]+')
+        _kv_url=$(curl -s https://www.kernel.org/releases.json | jq -r '.latest_stable.tarball')
         _kv_name=$(basename "$_kv_url" .tar.xz)
         _kernel_version="${_kv_name#linux-}"
     fi
+
+    if [[ ! -f "${_kv_name}.tar.xz" ]]; then
+        echo "Downloading kernel source: $_kv_url"
+        wget -c "$_kv_url" -O "${_kv_name}.tar.xz" || {
+            echo "Error: Failed to download kernel source."
+            exit 1
+        }
+    else
+        echo "Kernel source already downloaded."
+    fi
+
+    if [[ ! -d "$_kv_name" ]]; then
+        echo "Extracting kernel source..."
+        tar -xf "${_kv_name}.tar.xz" || {
+            echo "Error: Failed to extract kernel source."
+            exit 1
+        }
+    else
+        echo "Kernel source already extracted."
+    fi
+
+    cd "$_kv_name" || {
+        echo "Error: Failed to enter the kernel source directory $_kv_name."
+        exit 1
+    }
 }
 
 
 apply_kernel_configuration() {
     echo "Starting kernel configuration process..."
 
-    local _major="${_kernel_version%%.*}"
-    local _mid="${_kernel_version#*.}"
+    local _major
+    local _mid
+
+    _major="${_kernel_version%%.*}"
+    _mid="${_kernel_version#*.}"
+    _mid="${_mid%%.*}"
 
     local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}"
     local config_suffix="$_selected_kernel_config"
