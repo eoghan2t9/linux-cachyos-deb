@@ -188,31 +188,31 @@ kernel_configuration() {
 }
 
 
+fetch_patch_list() {
+    local patch_list
+    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all" | jq -r '.[].name')
+
+    declare -gA patch_map
+    for patch_file in $patch_list; do
+        patch_key="${patch_file%.patch}"
+        patch_map["$patch_key"]="$patch_file"
+    done
+}
+
+
 configure_kernel_patches() {
-    local options=(
-        "amd-pstate" "Enable AMD P-State Driver" "$_amd_pstate_status"
-        "autofdo" "Enable AutoFDO Optimizations" "$_amd_pstate_status"
-        "bbr3" "Enable BBRv3 Congestion Control" "$_bbr3_status"
-        "cachy" "Enable CachyOS Base Optimizations" "$_cachy_base_status"
-        "crypto" "Enable Cryptography Optimizations" "$_crypto_status"
-        "ntsync" "Enable NTSYNC" "$_ntsync_status"
-        "fixes" "Apply CachyOS Fixes" "$_cachy_fixes_status"
-        "perf-per-core" "Enable Per-Core Performance Optimization" "$_perf_per_core_optimization_status"
-        "pksm" "Enable Process KSM Optimizations" "$_pksm_status"
-        "zstd" "Enable Zstd Optimizations" "$_zstd_optimization_status"
-    )
+    fetch_patch_list
+
+    local options=()
+    for patch_key in "${!patch_map[@]}"; do
+        options+=("$patch_key" "Enable ${patch_key^} Patch" "OFF")
+    done
 
     local selection
-    selection=$(whiptail --title "Configure Kernel Patches" --checklist \
+    if selection=$(whiptail --title "Configure Kernel Patches" --checklist \
         "Select the patches to apply (use space to select):" 20 78 14 \
-        "${options[@]}" 3>&1 1>&2 2>&3)
-
-    exitstatus=$?
-    if [ $exitstatus -eq 0 ]; then
-        IFS=' ' read -r -a _cachyos_patch_selection <<< "${selection//\"/}"
-    else
-        echo "No patches selected."
-        _cachyos_patch_selection=()
+        "${options[@]}" 3>&1 1>&2 2>&3); then
+        IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
     fi
 }
 
@@ -434,6 +434,12 @@ select_kernel_version() {
         _kernel_version="${_kv_name#linux-}"
     fi
 
+    _major="${_kernel_version%%.*}"
+    _mid="${_kernel_version#*.}"
+    _mid="${_mid%%.*}"
+
+    echo "Kernel version: $_kernel_version (Major: $_major, Mid: $_mid)"
+
     if [[ -d "$_kv_name" ]]; then
         echo "Removing existing kernel source directory: $_kv_name"
         rm -rf "$_kv_name"
@@ -485,22 +491,9 @@ apply_kernel_configuration() {
 
     # -- Apply CachyOS patches with auto-fix mechanism.
 
-    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
+    fetch_patch_list
 
-    declare -A patch_map=(
-        ["amd-cache-optimizer"]="0001-amd-cache-optimizer.patch"
-        ["amd-pstate"]="0002-amd-pstate.patch"
-        ["autofdo"]="0003-autofdo.patch"
-        ["bbr3"]="0004-bbr3.patch"
-        ["cachy"]="0005-cachy.patch"
-        ["crypto"]="0006-crypto.patch"
-        ["fixes"]="0007-fixes.patch"
-        ["ntsync"]="0008-ntsync.patch"
-        ["perf-per-core"]="0009-perf-per-core.patch"
-        ["pksm"]="0010-pksm.patch"
-        ["t2"]="0011-t2.patch"
-        ["zstd"]="0012-zstd.patch"
-    )
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
 
     for patch_key in "${_cachyos_patch_selection[@]}"; do
         patch_file="${patch_map[$patch_key]}"
@@ -511,34 +504,6 @@ apply_kernel_configuration() {
 
         echo "Applying patch: $patch_file"
         if ! wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1; then
-            echo "Patch failed: $patch_file. Checking for errors..."
-            
-            if [[ -f kernel/sched/fair.c.rej ]]; then
-                echo "Patch failure detected in kernel/sched/fair.c.rej"
-                
-                failed_lines=$(grep -E '^--- ' kernel/sched/fair.c.rej | awk '{print $2}')
-
-                if [[ -n "$failed_lines" ]]; then
-                    echo "Adjusting patch based on failed lines: $failed_lines"
-                    
-                    wget -qO "${patch_file}.backup" "${cachyos_patches_url}${patch_file}"
-
-                    sed -i 's/^@@ -\([0-9]\+\),\([0-9]\+\) @@/@@ -\1,\2 @@/' "$patch_file"
-
-                    echo "Reapplying adjusted patch: $patch_file"
-                    if wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1; then
-                        echo "Patch successfully applied after adjustment!"
-                        continue
-                    fi
-                fi
-            fi
-
-            echo "Applying patch with fuzzing..."
-            if wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1 --fuzz=3; then
-                echo "Patch applied successfully with fuzz."
-                continue
-            fi
-
             echo "Failed to apply patch: $patch_file"
             whiptail --title "Patch Application Error" --msgbox "Failed to apply the patch: $patch_file" 10 60
             return 1
@@ -575,34 +540,6 @@ apply_kernel_configuration() {
         wget -qO "$patch_file" "${sched_patch_base_url}${patch_file}"
 
         if ! patch -p1 < "$patch_file"; then
-            echo "Patch failed: $patch_file. Checking for errors..."
-            
-            if [[ -f kernel/sched/fair.c.rej ]]; then
-                echo "Patch failure detected in kernel/sched/fair.c.rej"
-                
-                failed_lines=$(grep -E '^--- ' kernel/sched/fair.c.rej | awk '{print $2}')
-
-                if [[ -n "$failed_lines" ]]; then
-                    echo "Adjusting patch based on failed lines: $failed_lines"
-                    
-                    cp "$patch_file" "${patch_file}.backup"
-
-                    sed -i 's/^@@ -\([0-9]\+\),\([0-9]\+\) @@/@@ -\1,\2 @@/' "$patch_file"
-
-                    echo "Reapplying adjusted patch: $patch_file"
-                    if patch -p1 < "$patch_file"; then
-                        echo "Patch successfully applied after adjustment!"
-                        continue
-                    fi
-                fi
-            fi
-
-            echo "Applying scheduler patch with fuzzing..."
-            if patch -p1 --fuzz=3 < "$patch_file"; then
-                echo "Scheduler patch applied successfully with fuzz."
-                continue
-            fi
-
             echo "Failed to download and apply the patch: $patch_file"
             whiptail --title "Patch Application Error" --msgbox "Failed to download or apply the patch: $patch_file" 10 60
             return 1
@@ -778,23 +715,16 @@ show_options() {
     fi
 
     custom_extraversion="${custom_extraversion#-}"
-
     local modified_kernel_version="${_kv_name}-${custom_extraversion}"
 
-    declare -A patch_descriptions=(
-        ["amd-cache-optimizer"]="AMD Cache Optimizer"
-        ["amd-pstate"]="AMD P-State Driver"
-        ["amd-pstate"]="AutoFDO Optimizations"
-        ["bbr3"]="BBRv3 Congestion Control"
-        ["cachy"]="CachyOS Base Optimizations"
-        ["crypto"]="Cryptography Optimizations"
-        ["fixes"]="CachyOS Fixes"
-        ["ntsync"]="Enable NTSYNC Optimizations"
-        ["perf-per-core"]="Per-Core Performance Optimization"
-        ["pksm"]="Process KSM Optimizations"
-        ["t2"]="T2 Optimizations"
-        ["zstd"]="Zstd Optimizations"
-    )
+    local patch_list
+    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all" | jq -r '.[].name')
+
+    declare -A patch_descriptions
+    for patch_file in $patch_list; do
+        patch_key="${patch_file%.patch}"
+        patch_descriptions["$patch_key"]="Enable ${patch_key^} Patch"
+    done
 
     local selected_patches
     if [[ ${#_cachyos_patch_selection[@]} -gt 0 ]]; then
