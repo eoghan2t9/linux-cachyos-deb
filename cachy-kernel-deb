@@ -75,6 +75,9 @@ _numa="enable"
 _custom_extraversion="-custom-kernel"
 
 
+declare -A patch_map
+
+
 # -- Add colors for whiptail.
 
 export NEWT_COLORS='
@@ -192,7 +195,8 @@ fetch_patch_list() {
     local patch_list
     patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all" | jq -r '.[].name')
 
-    declare -gA patch_map
+    patch_map=()
+
     for patch_file in $patch_list; do
         patch_key="${patch_file%.patch}"
         patch_map["$patch_key"]="$patch_file"
@@ -404,8 +408,11 @@ configure_system_optimizations() {
 
 
 select_kernel_version() {
+    local kernel_data
+    kernel_data=$(curl -s https://www.kernel.org/releases.json)
+
     local kernel_versions
-    kernel_versions=$(curl -s https://www.kernel.org/releases.json | jq -r '.releases[] | select(.moniker == "stable") | .version' | sort -Vr)
+    kernel_versions=$(echo "$kernel_data" | jq -r '.releases[] | select(.moniker == "stable") | .version' | sort -Vr)
 
     if [[ -z "$kernel_versions" ]]; then
         echo "Failed to fetch kernel versions from kernel.org."
@@ -429,7 +436,7 @@ select_kernel_version() {
         _kv_name="linux-${_kernel_version}"
     else
         echo "No kernel version selected. Using the latest version."
-        _kv_url=$(curl -s https://www.kernel.org/releases.json | jq -r '.latest_stable.tarball')
+        _kv_url=$(echo "$kernel_data" | jq -r '.latest_stable.source')
         _kv_name=$(basename "$_kv_url" .tar.xz)
         _kernel_version="${_kv_name#linux-}"
     fi
@@ -452,7 +459,7 @@ select_kernel_version() {
             exit 1
         }
     else
-        echo "Kernel source already downloaded."
+        echo "Kernel source archive already exists: ${_kv_name}.tar.xz"
     fi
 
     echo "Extracting kernel source..."
@@ -465,6 +472,8 @@ select_kernel_version() {
         echo "Error: Failed to enter the kernel source directory $_kv_name."
         exit 1
     }
+
+    echo "Kernel source setup complete."
 }
 
 
@@ -497,7 +506,7 @@ apply_kernel_configuration() {
 
     for patch_key in "${_cachyos_patch_selection[@]}"; do
         patch_file="${patch_map[$patch_key]}"
-        if [[ -z "$patch_file" ]]; then
+        if [[ ! -v patch_map[$patch_key] ]]; then
             echo "Unknown patch: $patch_key"
             continue
         fi
