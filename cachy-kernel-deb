@@ -192,8 +192,6 @@ kernel_configuration() {
 
 
 fetch_patch_list() {
-    declare -A patch_map
-
     local patch_list
     patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/6.13/all" | jq -r '.[].name')
 
@@ -255,12 +253,21 @@ fetch_patch_list() {
 
 
 configure_kernel_patches() {
+    echo "DEBUG: Entering configure_kernel_patches()"
+
     fetch_patch_list
+
+    if [[ ${#patch_map[@]} -eq 0 ]]; then
+        echo "ERROR: No patches found. Exiting."
+        return 1
+    fi
 
     local options=()
     for patch_key in "${!patch_map[@]}"; do
         options+=("$patch_key" "Enable ${patch_key^} Patch" "OFF")
     done
+
+    echo "DEBUG: Before whiptail, _cachyos_patch_selection = ${_cachyos_patch_selection[*]}"
 
     local selection
     selection=$(whiptail --title "Configure Kernel Patches" --checklist \
@@ -268,24 +275,25 @@ configure_kernel_patches() {
         "${options[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
 
     if [[ -z "$selection" ]]; then
+        echo "DEBUG: No patches selected. Exiting function."
         return
     fi
 
     IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
+    echo "DEBUG: Selected patches: ${_cachyos_patch_selection[*]}"
 
     for patch_key in "${_cachyos_patch_selection[@]}"; do
         patch_key=$(echo "$patch_key" | tr -d '\r')
 
-        echo "Debug: Checking patch_map[$patch_key]"
-
         if [[ -n "${patch_map[$patch_key]:-}" ]]; then
             echo "Patch found: ${patch_map[$patch_key]}"
         else
-            echo "Error: patch_map[$patch_key] is unassigned!"
-            echo "Known keys: ${!patch_map[*]}"
+            echo "ERROR: patch_map[$patch_key] is unassigned!"
             exit 1
         fi
     done
+
+    echo "DEBUG: Exiting configure_kernel_patches()"
 }
 
 
