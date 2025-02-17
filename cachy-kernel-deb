@@ -593,7 +593,7 @@ apply_kernel_configuration() {
             return 1
         fi
 
-        if [[ "$patch_key" == "cachy" ]]; then
+        if [[ "$patch_key" == "0001-cachyos-base-all" ]]; then
             scripts/config -e CONFIG_CACHY
         fi
     done
