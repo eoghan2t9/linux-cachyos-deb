@@ -30,18 +30,14 @@ To use the utility, follow these steps:
 
 The utility includes advanced configuration options for users who want to fine-tune their kernel:
 
-- **Linux Kernel Configuration**: Choose from different configuration patches for the Linux Kernel from CachyOS.
-- **CPU Scheduler**: Choose between schedulers like BORE, BORE+Cachy Sauce and BMQ/PDS.
+- **Linux Kernel Configuration**: Choose from different configurations for the Linux Kernel from CachyOS.
+- **CPU Scheduler**: Choose between various schedulers from CachyOS.
 - **Configure LLVM's Link Time Optimization (LTO)**: Select from Thin and Full LTO for better optimization.
 - **Configurable Tick Rate and Tick Types**: You can configure the kernel tick rate and types according to your system's needs.
 - **Configurable NR_CPUS**: Set the maximum number of CPUs/cores the kernel will support.
 - **Configurable Hugepages**: Enable Hugepages support or not.
 - **Configurable LRU**: Configure the Least Recently Used memory management mechanism.
 - **Configurable Preemption Type**: Kernel preemption types generally control how the Linux kernel handles tasks and interrupts, affecting system responsiveness and latency.
-    - **No Forced Preemption**: This mode disables kernel preemption entirely, only allowing preemption at explicit preemption points.
-    - **Voluntary Kernel Preemption**: This mode allows the kernel to preempt tasks at specific, well-defined preemption points. It offers a balance between low latency and high throughput.
-    - **Preemptible Kernel (Low-Latency Desktop)**: In this mode, the kernel can be preempted almost anywhere, allowing for very low latency and high responsiveness.
-    - **Real-Time Preemption**: This mode is designed for real-time applications where minimizing latency is critical.
 - **Configurable Kernel Name**: Choose a name for your custom kernel.
 - **Additional Optimizations**: Optimizations target aspects of system performance and can provide benefits depending on the workload and system configuration.
     - **Use GCC -O3 Optimizations**: Aggressively optimizes compiled code for speed, possibly increasing binary size and compilation time.
