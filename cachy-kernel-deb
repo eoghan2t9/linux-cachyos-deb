@@ -35,7 +35,7 @@ _march="native"
 
 _selected_kernel_config="linux-cachyos"
 
-_cachyos_patch_selection=("cachy")
+_cachyos_patch_selection=("0001-cachyos-base-all")
 
 _amd_cache_optimizer_status="OFF"
 _amd_pstate_status="OFF"
@@ -214,8 +214,32 @@ fetch_patch_list() {
 
     echo "Debug: _cachyos_patch_selection contains: ${_cachyos_patch_selection[*]}"
 
+    local options=()
+    for patch_key in "${!patch_map[@]}"; do
+        options+=("$patch_key" "Enable ${patch_key^} Patch" "OFF")
+    done
+
+    if [[ ${#options[@]} -eq 0 ]]; then
+        echo "Error: No patches found!"
+        exit 1
+    fi
+
+    local selection
+    selection=$(whiptail --title "Configure Kernel Patches" --checklist \
+        "Select the patches to apply (use space to select):" 20 78 14 \
+        "${options[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
+
+    if [[ -z "$selection" ]]; then
+        echo "No patches selected."
+        return
+    fi
+
+    IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
+
+    echo "Selected patches: ${_cachyos_patch_selection[*]}"
+
     for patch_key in "${_cachyos_patch_selection[@]}"; do
-        patch_key=$(echo "$patch_key" | tr -d '\r')  # Normalize key
+        patch_key=$(echo "$patch_key" | tr -d '\r')
 
         echo "Debug: Checking patch_map[$patch_key]"
 
@@ -223,12 +247,11 @@ fetch_patch_list() {
             echo "Patch found: ${patch_map[$patch_key]}"
         else
             echo "Error: patch_map[$patch_key] is unassigned!"
-            echo "Known keys: ${!patch_map[@]}"
-            exit 1  # Exit script to avoid using an undefined variable
+            echo "Known keys: ${!patch_map[*]}"
+            exit 1
         fi
     done
 }
-
 
 
 configure_kernel_patches() {
@@ -240,11 +263,29 @@ configure_kernel_patches() {
     done
 
     local selection
-    if selection=$(whiptail --title "Configure Kernel Patches" --checklist \
+    selection=$(whiptail --title "Configure Kernel Patches" --checklist \
         "Select the patches to apply (use space to select):" 20 78 14 \
-        "${options[@]}" 3>&1 1>&2 2>&3); then
-        IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
+        "${options[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
+
+    if [[ -z "$selection" ]]; then
+        return
     fi
+
+    IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
+
+    for patch_key in "${_cachyos_patch_selection[@]}"; do
+        patch_key=$(echo "$patch_key" | tr -d '\r')
+
+        echo "Debug: Checking patch_map[$patch_key]"
+
+        if [[ -n "${patch_map[$patch_key]:-}" ]]; then
+            echo "Patch found: ${patch_map[$patch_key]}"
+        else
+            echo "Error: patch_map[$patch_key] is unassigned!"
+            echo "Known keys: ${!patch_map[*]}"
+            exit 1
+        fi
+    done
 }
 
 
