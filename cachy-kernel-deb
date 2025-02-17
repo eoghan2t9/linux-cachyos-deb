@@ -192,16 +192,43 @@ kernel_configuration() {
 
 
 fetch_patch_list() {
-    local patch_list
-    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all" | jq -r '.[].name')
+    declare -A patch_map
 
-    patch_map=()
+    local patch_list
+    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/6.13/all" | jq -r '.[].name')
+
+    echo "Debug: Raw Patch List -> $patch_list"
 
     for patch_file in $patch_list; do
         patch_key="${patch_file%.patch}"
+        patch_key=$(echo "$patch_key" | tr -d '\r')
         patch_map["$patch_key"]="$patch_file"
     done
+
+    echo "Debug: patch_map contents ->"
+    for key in "${!patch_map[@]}"; do
+        echo "  $key -> ${patch_map[$key]}"
+    done
+
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/6.13/all/"
+
+    echo "Debug: _cachyos_patch_selection contains: ${_cachyos_patch_selection[*]}"
+
+    for patch_key in "${_cachyos_patch_selection[@]}"; do
+        patch_key=$(echo "$patch_key" | tr -d '\r')  # Normalize key
+
+        echo "Debug: Checking patch_map[$patch_key]"
+
+        if [[ -n "${patch_map[$patch_key]:-}" ]]; then
+            echo "Patch found: ${patch_map[$patch_key]}"
+        else
+            echo "Error: patch_map[$patch_key] is unassigned!"
+            echo "Known keys: ${!patch_map[@]}"
+            exit 1  # Exit script to avoid using an undefined variable
+        fi
+    done
 }
+
 
 
 configure_kernel_patches() {
@@ -952,7 +979,6 @@ whiptail --title "Secure Boot Warning" --yesno "CachyOS Kernel Builder will gene
 select_kernel_version
 
 echo "Downloading kernel: $_kv_url"
-wget -c "$_kv_url" -O "${_kv_name}.tar.xz"
 
 
 # -- Run main function.
