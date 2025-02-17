@@ -74,8 +74,9 @@ _numa="enable"
 
 _custom_extraversion="-custom-kernel"
 
-
 declare -A patch_map
+
+PATCH_MENU_SHOWN=0
 
 
 # -- Add colors for whiptail.
@@ -262,6 +263,11 @@ configure_kernel_patches() {
         return 1
     fi
 
+    if [[ ${#_cachyos_patch_selection[@]} -gt 0 ]]; then
+        echo "DEBUG: Previous selection detected. Skipping menu."
+        return 0
+    fi
+
     local options=()
     for patch_key in "${!patch_map[@]}"; do
         options+=("$patch_key" "Enable ${patch_key^} Patch" "OFF")
@@ -274,26 +280,14 @@ configure_kernel_patches() {
         "Select the patches to apply (use space to select):" 20 78 14 \
         "${options[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
 
-    if [[ -z "$selection" ]]; then
-        echo "DEBUG: No patches selected. Exiting function."
-        return
+    if [[ -n "$selection" ]]; then
+        IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
+        echo "DEBUG: Selected patches: ${_cachyos_patch_selection[*]}"
+    else
+        echo "DEBUG: No patches selected. Keeping previous selection: ${_cachyos_patch_selection[*]}"
     fi
 
-    IFS=' ' read -r -a _cachyos_patch_selection <<< "$selection"
-    echo "DEBUG: Selected patches: ${_cachyos_patch_selection[*]}"
-
-    for patch_key in "${_cachyos_patch_selection[@]}"; do
-        patch_key=$(echo "$patch_key" | tr -d '\r')
-
-        if [[ -n "${patch_map[$patch_key]:-}" ]]; then
-            echo "Patch found: ${patch_map[$patch_key]}"
-        else
-            echo "ERROR: patch_map[$patch_key] is unassigned!"
-            exit 1
-        fi
-    done
-
-    echo "DEBUG: Exiting configure_kernel_patches()"
+    return 0
 }
 
 
@@ -576,7 +570,12 @@ apply_kernel_configuration() {
 
     # -- Apply CachyOS patches with auto-fix mechanism.
 
-    fetch_patch_list
+    if [[ ${#_cachyos_patch_selection[@]} -eq 0 ]]; then
+        echo "Fetching patches..."
+        fetch_patch_list
+    else
+        echo "Skipping patch selection, using previous selection: ${_cachyos_patch_selection[*]}"
+    fi
 
     local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
 
