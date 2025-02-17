@@ -76,8 +76,6 @@ _custom_extraversion="-custom-kernel"
 
 declare -A patch_map
 
-PATCH_MENU_SHOWN=0
-
 
 # -- Add colors for whiptail.
 
