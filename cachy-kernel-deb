@@ -192,7 +192,9 @@ kernel_configuration() {
 
 fetch_patch_list() {
     local patch_list
-    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/6.13/all" | jq -r '.[].name')
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
+
+    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all" | jq -r '.[].name')
 
     echo "Debug: Raw Patch List -> $patch_list"
 
@@ -206,8 +208,6 @@ fetch_patch_list() {
     for key in "${!patch_map[@]}"; do
         echo "  $key -> ${patch_map[$key]}"
     done
-
-    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/6.13/all/"
 
     echo "Debug: _cachyos_patch_selection contains: ${_cachyos_patch_selection[*]}"
 
