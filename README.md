@@ -59,3 +59,4 @@ The repository and its contents are licensed under BSD-3-Clause.
 If you find problems with the contents of this repository, please create an issue.
 
 ©2024 Laio O. Seman, Nitrux Latinoamericana S.C.
+©2025 Nitrux Latinoamericana S.C.
