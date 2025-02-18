@@ -37,19 +37,6 @@ _selected_kernel_config="linux-cachyos"
 
 _cachyos_patch_selection=("0001-cachyos-base-all")
 
-_amd_cache_optimizer_status="OFF"
-_amd_pstate_status="OFF"
-_autofdo_status="OFF"
-_bbr3_status="OFF"
-_cachy_base_status="OFF"
-_crypto_status="OFF"
-_cachy_fixes_status="OFF"
-_ntsync_status="OFF"
-_perf_per_core_optimization_status="OFF"
-_pksm_status="OFF"
-_t2_optimization_status="OFF"
-_zstd_optimization_status="OFF"
-
 _cpusched_selection="bore-cachy"
 
 _llvm_lto_selection="thin"
