@@ -1003,7 +1003,7 @@ check_deps
 
 # -- Ask for user confirmation.
 
-whiptail --title "CachyOS Kernel Builder for Debian-based Distributions" --msgbox "Welcome to the CachyOS Kernel Builder for Debian-based Distributions\n\nLicensed under the BSD-3-Clause license — ©2025 Nitrux Latinoamericana S.C." 10 88
+whiptail --title "CachyOS Kernel Builder for Debian-based Distributions" --msgbox "Welcome to the CachyOS Kernel Builder for Debian-based Distributions\n\nLicensed under the BSD-3-Clause license — ©$(date +%Y) Nitrux Latinoamericana S.C." 10 88
 whiptail --title "Secure Boot Warning" --yesno "CachyOS Kernel Builder will generate unsigned kernels incompatible with Secure Boot.\nDo you want to continue?" 8 88
 
 
