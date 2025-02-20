@@ -875,7 +875,7 @@ create_debian_packages() {
 
     # -- End of ugly "hack."
 
-    make -j"$(nproc)" | tee cachy-kernel-deb-"$(date +%Y.%m.%d-%H.%M)".log
+    make -j"$(nproc)"
 
     modules_build_dir=$(mktemp -d)
     make INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH="$modules_build_dir"
@@ -1007,39 +1007,49 @@ EOF
         headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
         declare -A required_files=(
-            ["arch/x86"]="Kconfig Makefile"
-            ["block"]="Kconfig Makefile"
-            ["certs"]="Kconfig Makefile"
-            ["crypto"]="Kconfig Makefile"
-            ["drivers"]="Kconfig Makefile"
-            ["fs"]="Kconfig Makefile"
-            ["include"]=""
-            ["init"]="Kconfig Makefile"
-            ["io_uring"]="Kconfig Makefile"
-            ["ipc"]="Kconfig Makefile"
-            ["kernel"]="Kconfig Makefile"
-            ["lib"]="Kconfig Makefile"
-            ["mm"]="Kconfig Makefile"
-            ["net"]="Kconfig Makefile"
-            ["rust"]="Kconfig Makefile"
-            ["samples"]="Kconfig Makefile"
-            ["scripts"]=""
-            ["security"]="Kconfig Makefile"
-            ["sound"]="Kconfig Makefile"
-            ["tools"]=""
-            ["usr"]="Kconfig Makefile"
-            ["virt"]="Kconfig Makefile"
+            ["arch/x86"]="Kconfig Makefile *.h *.s *.c"
+            ["block"]="Kconfig Makefile *.h *.c"
+            ["certs"]="Kconfig Makefile *.h *.c"
+            ["crypto"]="Kconfig Makefile *.h *.c"
+            ["drivers"]="Kconfig Makefile *.h *.c"
+            ["fs"]="Kconfig Makefile *.h *.c"
+            ["include"]="*.h"
+            ["init"]="Kconfig Makefile *.h *.c"
+            ["io_uring"]="Kconfig Makefile *.h *.c"
+            ["ipc"]="Kconfig Makefile *.h *.c"
+            ["kernel"]="Kconfig Makefile *.h *.c"
+            ["lib"]="Kconfig Makefile *.h *.c"
+            ["mm"]="Kconfig Makefile *.h *.c"
+            ["net"]="Kconfig Makefile *.h *.c"
+            ["rust"]="Kconfig Makefile *.rs"
+            ["samples"]="Kconfig Makefile *.h *.c"
+            ["scripts"]="*.sh *.pl *.py"
+            ["security"]="Kconfig Makefile *.h *.c"
+            ["sound"]="Kconfig Makefile *.h *.c"
+            ["tools"]="*.sh *.py *.h *.c"
+            ["usr"]="Kconfig Makefile *.h *.c"
+            ["virt"]="Kconfig Makefile.kvm *.h *.c"
         )
+
+        for base_dir in "${!required_files[@]}"; do
+            base_path="${headers_dir}/${base_dir}"
+            if [[ -d "$base_path" ]]; then
+                while IFS= read -r -d '' sub_dir; do
+                    sub_dir_rel="${sub_dir#"${headers_dir}/"}"
+                    required_files["$sub_dir_rel"]="${required_files["$base_dir"]}"
+                done < <(find "$base_path" -type d -print0)
+            fi
+        done
 
         for dir in "${!required_files[@]}"; do
             dir_path="${headers_dir}/${dir}"
             if [[ -d "$dir_path" ]]; then
                 find "$dir_path" -type f | while read -r file; do
                     filename=$(basename "$file")
-
                     keep=false
-                    for req_file in ${required_files[$dir]}; do
-                        if [[ "$filename" == "$req_file" ]]; then
+
+                    for pattern in ${required_files["$dir"]}; do
+                        if [[ "$filename" == "$pattern" ]]; then
                             keep=true
                             break
                         fi
@@ -1085,7 +1095,7 @@ if [ "$#" -gt 0 ]; then
     case "$1" in
     --help | -h)
         echo "Usage: $0"
-        echo "Compile a custom Linux kernel and package it into a .deb file for CachyOS"
+        echo "Compile a Linux kernel with CachyOS patches and package it into a .deb file for distribution."
         exit 0
         ;;
     esac
