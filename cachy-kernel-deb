@@ -994,7 +994,7 @@ EOF
         cp -a Module.symvers Makefile Kconfig "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/"
 
         directories=(
-            arch/x86 block certs crypto drivers fs include init io_uring ipc
+            arch arch/86 block certs crypto drivers fs include init io_uring ipc
             kernel lib mm net rust samples scripts security sound tools usr virt
         )
 
@@ -1007,28 +1007,30 @@ EOF
         headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
         declare -A required_files=(
-            ["arch/x86"]="Kconfig Makefile *.h *.s *.c"
-            ["block"]="Kconfig Makefile *.h *.c"
-            ["certs"]="Kconfig Makefile *.h *.c"
-            ["crypto"]="Kconfig Makefile *.h *.c"
-            ["drivers"]="Kconfig Makefile *.h *.c"
-            ["fs"]="Kconfig Makefile *.h *.c"
+            ["arch"]="Kconfig Kconfig.* Makefile Makefile.* *.h *.s *.c"
+            ["arch/x86"]="Kconfig Kconfig.* Makefile Makefile.* *.h *.s *.c"
+            ["block"]="Kconfig Kconfig.* Makefile"
+            ["certs"]="Kconfig Makefile"
+            ["crypto"]="Kconfig Makefile"
+            ["drivers"]="Kconfig Kconfig.* Makefile Makefile-* *.h *.c"
+            ["fs"]="Kconfig Kconfig.* Makefile"
             ["include"]="*.h"
-            ["init"]="Kconfig Makefile *.h *.c"
-            ["io_uring"]="Kconfig Makefile *.h *.c"
-            ["ipc"]="Kconfig Makefile *.h *.c"
-            ["kernel"]="Kconfig Makefile *.h *.c"
-            ["lib"]="Kconfig Makefile *.h *.c"
-            ["mm"]="Kconfig Makefile *.h *.c"
-            ["net"]="Kconfig Makefile *.h *.c"
-            ["rust"]="Kconfig Makefile *.rs"
-            ["samples"]="Kconfig Makefile *.h *.c"
-            ["scripts"]="*.sh *.pl *.py"
-            ["security"]="Kconfig Makefile *.h *.c"
-            ["sound"]="Kconfig Makefile *.h *.c"
-            ["tools"]="*.sh *.py *.h *.c"
-            ["usr"]="Kconfig Makefile *.h *.c"
-            ["virt"]="Kconfig Makefile.kvm *.h *.c"
+            ["include/config"]="*"
+            ["init"]="Kconfig Makefile"
+            ["io_uring"]="Makefile"
+            ["ipc"]="Makefile"
+            ["kernel"]="Kconfig Kconfig.* Makefile"
+            ["lib"]="Kconfig Kconfig.* Makefile"
+            ["mm"]="Kconfig Kconfig.* Makefile"
+            ["net"]="Kconfig Kconfig.* Makefile"
+            ["rust"]="Makefile"
+            ["samples"]="Kconfig Makefile Makefile.*"
+            ["scripts"]="*"
+            ["security"]="Kconfig Kconfig.* Makefile"
+            ["sound"]="Kconfig Makefile"
+            ["tools"]="Makefile Makefile.*"
+            ["usr"]="Kconfig Makefile"
+            ["virt"]="Kconfig Makefile Makefile.*"
         )
 
         for base_dir in "${!required_files[@]}"; do
@@ -1049,7 +1051,7 @@ EOF
                     keep=false
 
                     for pattern in ${required_files["$dir"]}; do
-                        if [[ "$filename" == "$pattern" ]]; then
+                        if [[ "$filename" == "$pattern" || "$filename" == *${pattern#*.} ]]; then
                             keep=true
                             break
                         fi
