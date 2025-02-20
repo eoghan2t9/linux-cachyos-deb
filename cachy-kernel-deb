@@ -1044,11 +1044,11 @@ EOF
         for base_dir in "${!required_files[@]}"; do
             base_path="${headers_dir}/${base_dir}"
             if [[ -d "$base_path" ]]; then
-                allowed_patterns=${required_files["$base_dir"]}
+                read -r -a patterns <<< "${required_files["$base_dir"]}"
                 while IFS= read -r -d '' file; do
                     filename=$(basename "$file")
                     keep=false
-                    for pattern in $allowed_patterns; do
+                    for pattern in "${patterns[@]}"; do
                         case "$filename" in
                             $pattern)
                                 keep=true
