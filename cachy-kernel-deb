@@ -1001,22 +1001,64 @@ EOF
             cp -a "${dir}/" "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/${dir}/"
         done
 
-        if [[ ! -f "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/Makefile" ]]; then
-            echo "Error: Makefile missing from headers package!"
+        headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        declare -A required_files=(
+            ["arch/x86"]="Kconfig Makefile"
+            ["block"]="Kconfig Makefile"
+            ["certs"]="Kconfig Makefile"
+            ["crypto"]="Kconfig Makefile"
+            ["drivers"]="Kconfig Makefile"
+            ["fs"]="Kconfig Makefile"
+            ["include"]=""
+            ["init"]="Kconfig Makefile"
+            ["io_uring"]="Kconfig Makefile"
+            ["ipc"]="Kconfig Makefile"
+            ["kernel"]="Kconfig Makefile"
+            ["lib"]="Kconfig Makefile"
+            ["mm"]="Kconfig Makefile"
+            ["net"]="Kconfig Makefile"
+            ["rust"]="Kconfig Makefile"
+            ["samples"]="Kconfig Makefile"
+            ["scripts"]=""
+            ["security"]="Kconfig Makefile"
+            ["sound"]="Kconfig Makefile"
+            ["tools"]=""
+            ["usr"]="Kconfig Makefile"
+            ["virt"]="Kconfig Makefile"
+        )
+
+        for dir in "${!required_files[@]}"; do
+            dir_path="${headers_dir}/${dir}"
+            if [[ -d "$dir_path" ]]; then
+                find "$dir_path" -type f | while read -r file; do
+                    filename=$(basename "$file")
+
+                    keep=false
+                    for req_file in ${required_files[$dir]}; do
+                        if [[ "$filename" == "$req_file" ]]; then
+                            keep=true
+                            break
+                        fi
+                    done
+
+                    if ! $keep; then
+                        echo "Removing: $file"
+                        rm -f "$file"
+                    fi
+                done
+            fi
+        done
+
+        find "$headers_dir" -type d -empty -exec rmdir {} +
+
+        if [[ ! -f "$kernel_pkg_dir/vmlinux" ]]; then
+            echo "ERROR: vmlinux is missing! Listing contents of $kernel_pkg_dir:"
+            ls -l "$kernel_pkg_dir"
             exit 1
         fi
 
-        if vmlinux_path=$(find "$(pwd)" -type f -name "vmlinux" -print -quit); then
-            if [[ -n "$vmlinux_path" ]]; then
-                if bpftool btf dump file "$vmlinux_path" format c > "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"; then
-                    echo "Generated vmlinux.h successfully."
-                else
-                    echo "Warning: Failed to generate vmlinux.h. Ensure that BTF support is enabled in the kernel."
-                fi
-            else
-                echo "Error: vmlinux file not found!"
-            fi
-        fi
+        bpftool btf dump file ../vmlinux format c > "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
