@@ -90,10 +90,22 @@ export NEWT_COLORS='
 # -- Functions.
 
 check_deps() {
-    dependencies=(git libncurses-dev curl gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm bc rsync whiptail jq)
+    dependencies=(git libncurses-dev curl gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm bc rsync whiptail jq bpftool pahole)
+    
     for dep in "${dependencies[@]}"; do
-        dpkg -s "$dep" &>/dev/null || sudo apt install -y "$dep"
+        if ! dpkg -s "$dep" &>/dev/null; then
+            if [[ "$dep" == "bpftool" ]]; then
+                echo "Attempting to install bpftool..."
+                if ! sudo apt install -y bpftool; then
+                    echo "bpftool installation failed. Installing linux-tools-common instead..."
+                    sudo apt install -y linux-tools-common
+                fi
+            else
+                sudo apt install -y "$dep"
+            fi
+        fi
     done
+
     sudo apt install -y "linux-headers-$(uname -r)" "linux-image-$(uname -r)"
 }
 
@@ -940,6 +952,7 @@ EOF
     package_headers() {
         local control_file="${headers_pkg_dir}/DEBIAN/control"
         local headers_postinst_file="${headers_pkg_dir}/DEBIAN/postinst"
+        local headers_postrm_file="${headers_pkg_dir}/DEBIAN/postrm"
         mkdir -p "${headers_pkg_dir}/DEBIAN" \
                  "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
 
@@ -959,12 +972,41 @@ EOF
 
 # -- Link build directory to kernel source for headers.
 
-ln -svf /usr/src/linux-headers-${kernel_version} /lib/modules/${kernel_version}/build
+ln -svf /usr/src/linux-headers-${kernel_version} /usr/lib/modules/${kernel_version}/build
 EOF
 
-        chmod 755 "${headers_postinst_file}"
+        cat >"${headers_postrm_file}" <<EOF
+#!/usr/bin/env bash
+
+# -- Cleanup symlink after removal.
+
+rm -f /usr/lib/modules/${kernel_version}/build
+EOF
+
+        chmod 755 "${headers_postinst_file}" "${headers_postrm_file}"
 
         make headers_install INSTALL_HDR_PATH="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        echo "Copying necessary kernel build files..."
+
+        cp -a Module.symvers Makefile Kconfig "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/"
+
+        cp -a tools/perf/util/bpf_skel/vmlinux/vmlinux.h "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/"
+
+        directories=(
+            arch/x86 block certs crypto drivers fs include init io_uring ipc
+            kernel lib mm net rust samples scripts security sound tools usr virt
+        )
+
+        for dir in "${directories[@]}"; do
+            mkdir -p "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/${dir}"
+            cp -a "${dir}/" "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/${dir}/"
+        done
+
+        if [[ ! -f "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/Makefile" ]]; then
+            echo "Error: Makefile missing from headers package!"
+            exit 1
+        fi
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
