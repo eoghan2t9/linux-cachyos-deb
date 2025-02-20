@@ -999,8 +999,9 @@ EOF
         )
 
         for dir in "${directories[@]}"; do
-            mkdir -p "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/${dir}"
-            cp -a "${dir}/" "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/${dir}/"
+            target_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/${dir}"
+            mkdir -p "$target_dir"
+            cp -a "${dir}/." "$target_dir/"
         done
 
         headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
