@@ -994,7 +994,7 @@ EOF
         cp -a Module.symvers Makefile Kconfig "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/"
 
         directories=(
-            arch arch/86 block certs crypto drivers fs include init io_uring ipc
+            arch arch/x86 block certs crypto drivers fs include init io_uring ipc
             kernel lib mm net rust samples scripts security sound tools usr virt
         )
 
