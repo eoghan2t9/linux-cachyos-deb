@@ -892,7 +892,7 @@ create_debian_packages() {
     kernel_pkg_version=$(date +%Y.%m.%d-%H.%M)
     local kernel_pkg_dir="${kernel_pkg_name}-${kernel_pkg_version}_${arch}"
 
-     echo "Creating Debian package..."
+    echo "Creating Debian package..."
 
     package_kernel() {
         local control_file="${kernel_pkg_dir}/DEBIAN/control"
@@ -1004,7 +1004,8 @@ EOF
             cp -a "${dir}/." "$target_dir/"
         done
 
-        headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+        # -- The allowed file rules. Without these files, building DKMS drivers would be impossible, but including every file would result in an enormous headers package.
+        # -- Instead of propagating these rules into every subdirectory (which was causing files to be removed), we apply the rule for each top-level directory recursively.
 
         declare -A required_files=(
             ["arch"]="Kconfig Kconfig.* Makefile Makefile.* *.h *.s *.c"
@@ -1033,35 +1034,33 @@ EOF
             ["virt"]="Kconfig Makefile Makefile.*"
         )
 
+        headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
+
+        shopt -s nullglob
+
+        # -- Tell ShellCheck that we intentionally want to use the unquoted variable so that glob matching is enabled.
+        # shellcheck disable=SC2254
+
         for base_dir in "${!required_files[@]}"; do
             base_path="${headers_dir}/${base_dir}"
             if [[ -d "$base_path" ]]; then
-                while IFS= read -r -d '' sub_dir; do
-                    sub_dir_rel="${sub_dir#"${headers_dir}/"}"
-                    required_files["$sub_dir_rel"]="${required_files["$base_dir"]}"
-                done < <(find "$base_path" -type d -print0)
-            fi
-        done
-
-        for dir in "${!required_files[@]}"; do
-            dir_path="${headers_dir}/${dir}"
-            if [[ -d "$dir_path" ]]; then
-                find "$dir_path" -type f | while read -r file; do
+                allowed_patterns=${required_files["$base_dir"]}
+                while IFS= read -r -d '' file; do
                     filename=$(basename "$file")
                     keep=false
-
-                    for pattern in ${required_files["$dir"]}; do
-                        if [[ "$filename" == "$pattern" || "$filename" == *${pattern#*.} ]]; then
-                            keep=true
-                            break
-                        fi
+                    for pattern in $allowed_patterns; do
+                        case "$filename" in
+                            $pattern)
+                                keep=true
+                                break
+                                ;;
+                        esac
                     done
-
                     if ! $keep; then
                         echo "Removing: $file"
                         rm -f "$file"
                     fi
-                done
+                done < <(find "$base_path" -type f -print0)
             fi
         done
 
