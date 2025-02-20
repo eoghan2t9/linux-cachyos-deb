@@ -116,6 +116,8 @@ check_gcc() {
 
 
 init_script() {
+    clear
+
     check_gcc
 
     MARCH=$(gcc -Q -march=native --help=target | awk -F'=' '/^  -march=/ {print toupper($2); exit}' | xargs)
@@ -1052,13 +1054,12 @@ EOF
 
         find "$headers_dir" -type d -empty -exec rmdir {} +
 
-        if [[ ! -f "$kernel_pkg_dir/vmlinux" ]]; then
-            echo "ERROR: vmlinux is missing! Listing contents of $kernel_pkg_dir:"
-            ls -l "$kernel_pkg_dir"
-            exit 1
-        fi
+        cd -
 
-        bpftool btf dump file ../vmlinux format c > "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"
+        cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
+
+        bpftool btf dump file vmlinux format c > vmlinux.h 
+        mv vmlinux.h "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
 
