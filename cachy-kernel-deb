@@ -1006,10 +1006,16 @@ EOF
             exit 1
         fi
 
-        if bpftool btf dump file "${kernel_pkg_dir}/vmlinux" format c > "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"; then
-            echo "Generated vmlinux.h successfully."
-        else
-            echo "Warning: Failed to generate vmlinux.h. Ensure that BTF support is enabled in the kernel."
+        if vmlinux_path=$(find "$(pwd)" -type f -name "vmlinux" -print -quit); then
+            if [[ -n "$vmlinux_path" ]]; then
+                if bpftool btf dump file "$vmlinux_path" format c > "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"; then
+                    echo "Generated vmlinux.h successfully."
+                else
+                    echo "Warning: Failed to generate vmlinux.h. Ensure that BTF support is enabled in the kernel."
+                fi
+            else
+                echo "Error: vmlinux file not found!"
+            fi
         fi
 
         fakeroot dpkg-deb -Zxz --build --root-owner-group "${headers_pkg_dir}"
