@@ -994,7 +994,7 @@ EOF
         cp -a Module.symvers Makefile Kconfig "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/"
 
         directories=(
-            arch arch/x86 block certs crypto drivers fs include init io_uring ipc
+            arch block certs crypto drivers fs include init io_uring ipc
             kernel lib mm net rust samples scripts security sound tools usr virt
         )
 
@@ -1010,6 +1010,8 @@ EOF
         cd -
 
         cd "$_kv_name" || { echo "Failed to enter the kernel directory."; return 1; }
+
+        echo "Generating vmlinux.h..."
 
         bpftool btf dump file vmlinux format c > vmlinux.h 
         mv vmlinux.h "${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}/vmlinux.h"
