@@ -1004,67 +1004,8 @@ EOF
             cp -a "${dir}/." "$target_dir/"
         done
 
-        # -- The allowed file rules. Without these files, building DKMS drivers would be impossible, but including every file would result in an enormous headers package.
-        # -- Instead of propagating these rules into every subdirectory (which was causing files to be removed), we apply the rule for each top-level directory recursively.
-
-        declare -A required_files=(
-            ["arch"]="Kconfig Kconfig.* Makefile Makefile.* *.h *.s *.c"
-            ["arch/x86"]="Kconfig Kconfig.* Makefile Makefile.* *.h *.s *.c"
-            ["block"]="Kconfig Kconfig.* Makefile"
-            ["certs"]="Kconfig Makefile"
-            ["crypto"]="Kconfig Makefile"
-            ["drivers"]="Kconfig Kconfig.* Makefile Makefile-* *.h *.c"
-            ["fs"]="Kconfig Kconfig.* Makefile"
-            ["include"]="Kconfig Kconfig.* Makefile Makefile.* *.h"
-            ["include/config"]="*"
-            ["init"]="Kconfig Makefile"
-            ["io_uring"]="Makefile"
-            ["ipc"]="Makefile"
-            ["kernel"]="Kconfig Kconfig.* Makefile"
-            ["lib"]="Kconfig Kconfig.* Makefile"
-            ["mm"]="Kconfig Kconfig.* Makefile"
-            ["net"]="Kconfig Kconfig.* Makefile"
-            ["rust"]="Makefile"
-            ["samples"]="Kconfig Makefile Makefile.*"
-            ["scripts"]="*"
-            ["security"]="Kconfig Kconfig.* Makefile"
-            ["sound"]="Kconfig Makefile"
-            ["tools"]="Makefile Makefile.* *.gmo *.so.* *.c *.h *.output *.a *.d *.bin"
-            ["usr"]="Kconfig Makefile"
-            ["virt"]="Kconfig Makefile Makefile.*"
-        )
-
-        headers_dir="${headers_pkg_dir}/usr/src/linux-headers-${kernel_version}"
-
-        shopt -s nullglob
-
-        # -- Tell ShellCheck that we intentionally want to use the unquoted variable so that glob matching is enabled.
-        # shellcheck disable=SC2254
-
-        for base_dir in "${!required_files[@]}"; do
-            base_path="${headers_dir}/${base_dir}"
-            if [[ -d "$base_path" ]]; then
-                read -r -a patterns <<< "${required_files["$base_dir"]}"
-                while IFS= read -r -d '' file; do
-                    filename=$(basename "$file")
-                    keep=false
-                    for pattern in "${patterns[@]}"; do
-                        case "$filename" in
-                            $pattern)
-                                keep=true
-                                break
-                                ;;
-                        esac
-                    done
-                    if ! $keep; then
-                        echo "Removing: $file"
-                        rm -f "$file"
-                    fi
-                done < <(find "$base_path" -type f -print0)
-            fi
-        done
-
-        find "$headers_dir" -type d -empty -exec rmdir {} +
+        # -- Generate vmlinux.h which contains all the type definitions that your running Linux kernel uses in its own source code.
+        # -- For whatever reason I do not understand, this is the only way bpftool finds the file.
 
         cd -
 
