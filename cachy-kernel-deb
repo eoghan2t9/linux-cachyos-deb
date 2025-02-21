@@ -1015,7 +1015,7 @@ EOF
             ["crypto"]="Kconfig Makefile"
             ["drivers"]="Kconfig Kconfig.* Makefile Makefile-* *.h *.c"
             ["fs"]="Kconfig Kconfig.* Makefile"
-            ["include"]="*.h"
+            ["include"]="Kconfig Kconfig.* Makefile Makefile.* *.h"
             ["include/config"]="*"
             ["init"]="Kconfig Makefile"
             ["io_uring"]="Makefile"
