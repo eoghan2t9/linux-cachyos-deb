@@ -1029,7 +1029,7 @@ EOF
             ["scripts"]="*"
             ["security"]="Kconfig Kconfig.* Makefile"
             ["sound"]="Kconfig Makefile"
-            ["tools"]="Makefile Makefile.*"
+            ["tools"]="Makefile Makefile.* *.gmo *.so.* *.c *.h *.output *.a *.d *.bin"
             ["usr"]="Kconfig Makefile"
             ["virt"]="Kconfig Makefile Makefile.*"
         )
