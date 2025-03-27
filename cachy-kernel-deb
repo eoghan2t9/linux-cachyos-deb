@@ -492,7 +492,7 @@ select_kernel_version() {
     kernel_data=$(curl -s https://www.kernel.org/releases.json)
 
     local kernel_versions
-    kernel_versions=$(echo "$kernel_data" | jq -r '.releases[] | select(.moniker == "stable") | .version' | sort -Vr)
+    kernel_versions=$(echo "$kernel_data" | jq -r '.releases[] | select(.moniker == "mainline") | .version' | sort -Vr)
 
     if [[ -z "$kernel_versions" ]]; then
         echo "Failed to fetch kernel versions from kernel.org."
