@@ -201,12 +201,25 @@ kernel_configuration() {
     fi
 }
 
-
 fetch_patch_list() {
-    local patch_list
-    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
+    local _clean_version _major _mid
 
-    patch_list=$(wget -qO- "https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all" | jq -r '.[].name')
+    # Strip the -rc suffix to match GitHub branch folder naming
+    _clean_version="${_kernel_version%%-*}"
+    _major="${_clean_version%%.*}"
+    _mid="${_clean_version#*.}"
+    _mid="${_mid%%.*}"
+
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
+    local patch_list_url="https://api.github.com/repos/CachyOS/kernel-patches/contents/${_major}.${_mid}/all"
+
+    local patch_list
+    patch_list=$(wget -qO- "$patch_list_url" | jq -r '.[].name')
+
+    if [[ -z "$patch_list" ]]; then
+        echo "Error: Failed to fetch patch list from $patch_list_url"
+        exit 1
+    fi
 
     echo "Debug: Raw Patch List -> $patch_list"
 
@@ -261,7 +274,6 @@ fetch_patch_list() {
         fi
     done
 }
-
 
 configure_kernel_patches() {
     echo "DEBUG: Entering configure_kernel_patches()"
@@ -486,90 +498,102 @@ configure_system_optimizations() {
     _numa=$( echo "$selection" | grep -q "Enable NUMA" && echo "enable" || echo "disable" )
 }
 
-
 select_kernel_version() {
+    local json_url="https://www.kernel.org/releases.json"
     local kernel_data
-    kernel_data=$(curl -s https://www.kernel.org/releases.json)
+    kernel_data=$(curl -s "$json_url")
 
-    local kernel_versions
-    kernel_versions=$(echo "$kernel_data" | jq -r '.releases[] | select(.moniker == "mainline") | .version' | sort -Vr)
-
-    if [[ -z "$kernel_versions" ]]; then
-        echo "Failed to fetch kernel versions from kernel.org."
+    if [[ -z "$kernel_data" ]]; then
+        echo "Failed to fetch kernel data."
         exit 1
     fi
 
+    # Parse versions and sources into a proper array
     local options=()
-    while IFS= read -r version; do
+    while IFS=$'\t' read -r version source; do
+        [[ -n "$version" && -n "$source" ]] || continue
         options+=("$version" "Kernel version $version" OFF)
-    done <<< "$kernel_versions"
+    done < <(echo "$kernel_data" | jq -r '.releases[] | select(.version and .source) | "\(.version)\t\(.source)"')
+
+    if [[ ${#options[@]} -eq 0 ]]; then
+        echo "No valid kernel versions found with source links."
+        exit 1
+    fi
 
     local selection
     selection=$(whiptail --title "Kernel Version Selection" --radiolist \
         "Select the kernel version to download:" 20 78 10 \
         "${options[@]}" 3>&1 1>&2 2>&3)
 
-    if [[ -n "$selection" ]]; then
-        echo "Selected kernel version: $selection"
-        _kernel_version="$selection"
-        _kv_url="https://cdn.kernel.org/pub/linux/kernel/v${_kernel_version%%.*}.x/linux-${_kernel_version}.tar.xz"
-        _kv_name="linux-${_kernel_version}"
-    else
-        echo "No kernel version selected. Using the latest version."
+    if [[ -z "$selection" ]]; then
+        echo "No version selected. Defaulting to latest stable."
         _kv_url=$(echo "$kernel_data" | jq -r '.latest_stable.source')
-        _kv_name=$(basename "$_kv_url" .tar.xz)
-        _kernel_version="${_kv_name#linux-}"
+        _kernel_version=$(basename "$_kv_url" | sed -E 's/linux-([^-]+).*/\1/')
+    else
+        _kernel_version="$selection"
+        _kv_url=$(echo "$kernel_data" | jq -r --arg ver "$_kernel_version" '.releases[] | select(.version == $ver) | .source')
     fi
 
-    _major="${_kernel_version%%.*}"
-    _mid="${_kernel_version#*.}"
-    _mid="${_mid%%.*}"
+    if [[ -z "$_kv_url" ]]; then
+        echo "Failed to find download URL for $_kernel_version"
+        exit 1
+    fi
 
-    echo "Kernel version: $_kernel_version (Major: $_major, Mid: $_mid)"
+    _kv_name="linux-${_kernel_version}"
+    _archive_name=$(basename "$_kv_url")
+
+    echo "Selected kernel version: $_kernel_version"
+    echo "Download URL: $_kv_url"
 
     if [[ -d "$_kv_name" ]]; then
-        echo "Removing existing kernel source directory: $_kv_name"
+        echo "Removing existing source directory $_kv_name"
         rm -rf "$_kv_name"
     fi
 
-    if [[ ! -f "${_kv_name}.tar.xz" ]]; then
-        echo "Downloading kernel source: $_kv_url"
-        wget -c "$_kv_url" -O "${_kv_name}.tar.xz" || {
-            echo "Error: Failed to download kernel source."
+    if [[ ! -f "$_archive_name" ]]; then
+        echo "Downloading kernel source..."
+        wget -c "$_kv_url" -O "$_archive_name" || {
+            echo "Download failed."
             exit 1
         }
     else
-        echo "Kernel source archive already exists: ${_kv_name}.tar.xz"
+        echo "Source archive already exists: $_archive_name"
     fi
 
     echo "Extracting kernel source..."
-    tar -xf "${_kv_name}.tar.xz" || {
-        echo "Error: Failed to extract kernel source."
+    tar -xf "$_archive_name" || {
+        echo "Extraction failed."
         exit 1
     }
 
-    cd "$_kv_name" || {
-        echo "Error: Failed to enter the kernel source directory $_kv_name."
+    cd "$_kv_name" 2>/dev/null || cd "linux-$_kernel_version" 2>/dev/null || {
+        echo "Failed to enter extracted kernel directory."
         exit 1
     }
 
     echo "Kernel source setup complete."
 }
 
-
 apply_kernel_configuration() {
     echo "Starting kernel configuration process..."
 
-    local _major
-    local _mid
+    local _major _mid _clean_version config_url
 
-    _major="${_kernel_version%%.*}"
-    _mid="${_kernel_version#*.}"
+    # Strip -rc suffix for clean version
+    _clean_version="${_kernel_version%%-*}"
+    _major="${_clean_version%%.*}"
+    _mid="${_clean_version#*.}"
     _mid="${_mid%%.*}"
 
-    local base_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}"
     local config_suffix="$_selected_kernel_config"
-    local config_url="${base_url}/${config_suffix}/config"
+
+    if [[ "$_kernel_version" == *-rc* ]]; then
+        # RC build uses master/linux-cachyos-rc
+        config_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/master/linux-cachyos-rc/config"
+    else
+        # Stable build uses <version>/linux-cachyos
+        config_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}/linux-cachyos/${config_suffix}/config"
+    fi
 
     echo "Config URL: $config_url"
     if ! wget -c "$config_url" -O .config; then
@@ -577,9 +601,7 @@ apply_kernel_configuration() {
         return 1
     fi
 
-
     # -- Apply CachyOS patches with auto-fix mechanism.
-
     if [[ ${#_cachyos_patch_selection[@]} -eq 0 ]]; then
         echo "Fetching patches..."
         fetch_patch_list
@@ -587,15 +609,16 @@ apply_kernel_configuration() {
         echo "Skipping patch selection, using previous selection: ${_cachyos_patch_selection[*]}"
     fi
 
-    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${_major}.${_mid}/all/"
+    local patch_folder="${_major}.${_mid}"
+    local cachyos_patches_url="https://raw.githubusercontent.com/CachyOS/kernel-patches/refs/heads/master/${patch_folder}/all/"
 
     for patch_key in "${_cachyos_patch_selection[@]}"; do
-        patch_file="${patch_map[$patch_key]}"
         if [[ ! -v patch_map[$patch_key] ]]; then
             echo "Unknown patch: $patch_key"
             continue
         fi
 
+        local patch_file="${patch_map[$patch_key]}"
         echo "Applying patch: $patch_file"
         if ! wget -qO- "${cachyos_patches_url}${patch_file}" | patch -p1; then
             echo "Failed to apply patch: $patch_file"
@@ -607,7 +630,6 @@ apply_kernel_configuration() {
             scripts/config -e CONFIG_CACHY
         fi
     done
-
 
     # -- Apply scheduler patches with auto-fix mechanism.
 
@@ -639,7 +661,6 @@ apply_kernel_configuration() {
             return 1
         fi
     done
-
 
     # -- Apply the user selections to the kernel configuration.
 
