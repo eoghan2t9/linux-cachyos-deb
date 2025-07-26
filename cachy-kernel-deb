@@ -592,7 +592,7 @@ apply_kernel_configuration() {
         config_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/master/linux-cachyos-rc/config"
     else
         # Stable build uses <version>/linux-cachyos
-        config_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/${_major}.${_mid}/linux-cachyos/${config_suffix}/config"
+        config_url="https://raw.githubusercontent.com/CachyOS/linux-cachyos/refs/heads/master/linux-cachyos-server/config"
     fi
 
     echo "Config URL: $config_url"
